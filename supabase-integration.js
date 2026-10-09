@@ -5,6 +5,7 @@
 
   let currentUser = null;
   let isSignup = false;
+  const reminderTimers = new Map();
   const escapeHtml = (value) => String(value ?? "").replace(/[&<>"']/g, (c) => ({
     "&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"
   })[c]);
@@ -139,7 +140,7 @@
             <div class="content-name"><div class="table-thumb thumb-portrait"></div><span><strong>${escapeHtml(post.title)}</strong><small>${escapeHtml((post.caption || "").slice(0, 70) || "No caption added")}</small></span></div>
             <span class="type-tag">${escapeHtml(post.content_type)}</span>
             <span class="status-tag ${statusClass}"><i></i> ${escapeHtml(post.status)}</span>
-            <span class="row-date">${escapeHtml(date)}</span><button class="row-menu" type="button" aria-label="Post options">···</button>`;
+            <span class="row-date">${escapeHtml(date)}</span><div class="post-actions"><button class="row-menu" type="button" data-copy-caption="${escapeHtml(post.id)}" aria-label="Copy caption">Copy caption</button><button class="row-menu" type="button" data-open-instagram="${escapeHtml(post.id)}">Open Instagram</button>${post.scheduled_at && post.status !== "published" ? `<button class="row-menu" type="button" data-remind-post="${escapeHtml(post.id)}" data-remind-at="${escapeHtml(post.scheduled_at)}">Remind me</button>` : ""}</div>`;
           rows.appendChild(row);
         });
       }
@@ -223,6 +224,7 @@
     }
     const start = document.querySelector("#bulk-start-date")?.value || new Date().toISOString().slice(0, 10);
     const time = document.querySelector("#bulk-window")?.value || "19:00";
+    const bulkCaption = document.querySelector("#bulk-caption")?.value.trim() || "";
     const batchId = crypto.randomUUID();
     const uploadedPaths = [];
     const rows = [];
@@ -246,7 +248,8 @@
         user_id: currentUser.id,
         title: file.name.replace(/\\.[^.]+$/, "") || "Untitled content",
         content_type: isVideo ? "reel" : "photo",
-        caption: "",
+        caption: bulkCaption,
+        hashtags: (bulkCaption.match(/#[\\p{L}\\p{N}_]+/gu) || []),
         media_url: path,
         original_filename: file.name,
         status: "scheduled",
@@ -266,6 +269,110 @@
     document.querySelector("#schedule-form").classList.remove("bulk-active");
     toast(files.length + " posts and media files saved to your calendar.");
     await loadPosts();
+  }
+
+  function addBulkCaptionField() {
+    const panel = document.querySelector(".bulk-panel");
+    if (!panel || document.querySelector("#bulk-caption")) return;
+    const wrap = document.createElement("div");
+    wrap.className = "bulk-caption-wrap";
+    wrap.innerHTML = '<label class="form-label" for="bulk-caption">Caption and hashtags for this batch <span class="optional">Optional</span></label><textarea class="form-input caption-input" id="bulk-caption" placeholder="One caption will be added to each selected post. Add your hashtags here too."></textarea><p class="bulk-caption-help">You can edit individual captions later. PostPilot will not publish automatically.</p>';
+    const header = panel.querySelector(".bulk-panel-header");
+    if (header) header.insertAdjacentElement("afterend", wrap);
+    else panel.prepend(wrap);
+  }
+
+  function scheduleReminder(postId, isoDate) {
+    const when = new Date(isoDate).getTime();
+    if (!Number.isFinite(when) || when <= Date.now()) {
+      toast("Choose a future scheduled time to set a reminder.");
+      return;
+    }
+    const key = "postpilot-reminder:" + postId;
+    try { localStorage.setItem(key, String(when)); } catch (_) {}
+    const existing = reminderTimers.get(postId);
+    if (existing) clearTimeout(existing);
+    const delay = when - Date.now();
+    if (delay > 2147483647) {
+      toast("Reminder saved. Keep PostPilot open closer to the scheduled time.");
+      return;
+    }
+    const timer = setTimeout(async () => {
+      if ("Notification" in window) {
+        if (Notification.permission === "granted") {
+          new Notification("Time to post with PostPilot", {
+            body: "Your scheduled content is ready. Open Instagram to publish it manually.",
+            icon: "/favicon.ico"
+          });
+        } else {
+          toast("Your post is due. Open PostPilot to copy the caption and launch Instagram.");
+        }
+      } else {
+        toast("Your post is due. Open PostPilot to copy the caption and launch Instagram.");
+      }
+      try { localStorage.removeItem(key); } catch (_) {}
+      reminderTimers.delete(postId);
+    }, delay);
+    reminderTimers.set(postId, timer);
+    toast("Reminder set for " + new Date(when).toLocaleString());
+  }
+
+  function restoreReminders() {
+    try {
+      for (let i = 0; i < localStorage.length; i++) {
+        const key = localStorage.key(i);
+        if (!key || !key.startsWith("postpilot-reminder:")) continue;
+        const postId = key.slice("postpilot-reminder:".length);
+        const when = Number(localStorage.getItem(key));
+        if (when > Date.now()) scheduleReminder(postId, new Date(when).toISOString());
+        else localStorage.removeItem(key);
+      }
+    } catch (error) {
+      console.warn("Could not restore reminders:", error);
+    }
+  }
+
+  function bindPostActions() {
+    document.addEventListener("click", async (event) => {
+      const copyButton = event.target.closest("[data-copy-caption]");
+      const openButton = event.target.closest("[data-open-instagram]");
+      const remindButton = event.target.closest("[data-remind-post]");
+      if (!copyButton && !openButton && !remindButton) return;
+      if (!currentUser) {
+        toast("Sign in to manage your saved posts.");
+        return;
+      }
+      const postId = (copyButton || openButton || remindButton).dataset.copyCaption ||
+        (copyButton || openButton || remindButton).dataset.openInstagram ||
+        (copyButton || openButton || remindButton).dataset.remindPost;
+      const { data: post, error } = await client.from("posts")
+        .select("id,title,caption,hashtags,scheduled_at")
+        .eq("id", postId).eq("user_id", currentUser.id).maybeSingle();
+      if (error || !post) {
+        toast("Could not load that post. Please refresh and try again.");
+        return;
+      }
+      if (copyButton) {
+        const tags = Array.isArray(post.hashtags) ? post.hashtags.map((tag) => "#" + String(tag).replace(/^#+/, "")).join(" ") : "";
+        const text = [post.caption || "", tags].filter(Boolean).join("\\n\\n");
+        try {
+          await navigator.clipboard.writeText(text);
+          toast("Caption copied. Paste it into Instagram when you post.");
+        } catch (_) {
+          toast("Clipboard access was blocked. Open the post and copy its caption manually.");
+        }
+      }
+      if (openButton) {
+        window.open("https://www.instagram.com/", "_blank", "noopener,noreferrer");
+        toast("Instagram opened. Choose your media and paste the copied caption to publish manually.");
+      }
+      if (remindButton) {
+        if ("Notification" in window && Notification.permission === "default") {
+          try { await Notification.requestPermission(); } catch (_) {}
+        }
+        scheduleReminder(post.id, remindButton.dataset.remindAt);
+      }
+    });
   }
 
   function bindRealScheduling() {
@@ -291,7 +398,10 @@
 
   document.addEventListener("DOMContentLoaded", async () => {
     buildAuth();
+    addBulkCaptionField();
     bindRealScheduling();
+    bindPostActions();
+    restoreReminders();
     const { data, error } = await client.auth.getSession();
     if (error) console.error("Supabase session error:", error);
     currentUser = data?.session?.user || null;
