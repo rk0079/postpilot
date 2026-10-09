@@ -403,6 +403,17 @@
       // Launch Instagram synchronously from the tap; iOS Safari may block pop-ups after awaited requests.
       const mediaTab = mediaButton ? window.open("about:blank", "_blank") : null;
       const instagramTab = (publishButton || openButton) ? window.open("https://www.instagram.com/", "_blank") : null;
+      if (publishButton) {
+        const quickCaption = [publishButton.dataset.captionText || "", publishButton.dataset.hashtagsText || ""].filter(Boolean).join("\n\n");
+        // Trigger clipboard access directly from the tap before any network request.
+        try {
+          navigator.clipboard.writeText(quickCaption)
+            .then(() => toast("Caption copied. Select your media in Instagram to finish publishing."))
+            .catch(() => toast("Instagram opened. Caption copying was blocked; copy the caption manually."));
+        } catch (_) {
+          toast("Instagram opened. Caption copying was blocked; copy the caption manually.");
+        }
+      }
       if (!currentUser) {
         if (mediaTab) mediaTab.close();
         toast("Sign in to manage your saved posts.");
@@ -419,7 +430,7 @@
         toast("Could not load that post. Please refresh and try again.");
         return;
       }
-      if (copyButton || publishButton) {
+      if (copyButton) {
         const tags = Array.isArray(post.hashtags) ? post.hashtags.map((tag) => "#" + String(tag).replace(/^#+/, "")).join(" ") : "";
         const text = [post.caption || "", tags].filter(Boolean).join("\n\n");
         try {
