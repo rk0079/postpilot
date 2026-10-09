@@ -36,11 +36,40 @@
           <input class="auth-input" id="auth-password" type="password" autocomplete="current-password" minlength="6" placeholder="At least 6 characters" required>
           <div class="auth-error" id="auth-error" role="alert"></div>
           <button class="auth-submit" id="auth-submit" type="submit">Sign in</button>
+          <div class="auth-forgot-row" id="auth-forgot-row"><button id="auth-forgot" type="button">Forgot password?</button></div>
         </form>
         <div class="auth-switch"><span id="auth-switch-copy">New to PostPilot?</span> <button id="auth-switch" type="button">Create an account</button></div>
-        <div class="auth-note">Your content is private to your account. Instagram publishing is not connected yet.</div>
+        <div class="auth-note">Your content is private to your account. Reset links are sent securely by email.</div>
       </section>`;
     document.body.appendChild(backdrop);
+
+    document.querySelector("#auth-forgot").addEventListener("click", async () => {
+      const email = document.querySelector("#auth-email").value.trim();
+      if (!email) {
+        showAuthError("Enter your account email above, then select Forgot password again.");
+        document.querySelector("#auth-email").focus();
+        return;
+      }
+      const button = document.querySelector("#auth-forgot");
+      button.disabled = true;
+      button.textContent = "Sending reset link…";
+      showAuthError("");
+      try {
+        const redirectTo = window.location.origin + window.location.pathname + "?reset_password=1";
+        const { error } = await client.auth.resetPasswordForEmail(email, { redirectTo });
+        if (error) throw error;
+        showAuthError("If an account exists for this email, a password reset link has been sent. Check your inbox and spam folder.");
+        const errorBox = document.querySelector("#auth-error");
+        errorBox.style.display = "block";
+        errorBox.style.background = "#eef7f1";
+        errorBox.style.color = "#216844";
+      } catch (error) {
+        showAuthError(error.message || "Could not send a reset link. Please try again.");
+      } finally {
+        button.disabled = false;
+        button.textContent = "Forgot password?";
+      }
+    });
 
     document.querySelector("#auth-switch").addEventListener("click", () => {
       isSignup = !isSignup;
@@ -52,6 +81,7 @@
       document.querySelector("#auth-switch-copy").textContent = isSignup ? "Already have an account?" : "New to PostPilot?";
       document.querySelector("#auth-switch").textContent = isSignup ? "Sign in" : "Create an account";
       document.querySelector("#auth-password").autocomplete = isSignup ? "new-password" : "current-password";
+      document.querySelector("#auth-forgot-row").hidden = isSignup;
       showAuthError("");
     });
 
@@ -60,6 +90,41 @@
       const email = document.querySelector("#auth-email").value.trim();
       const password = document.querySelector("#auth-password").value;
       const submit = document.querySelector("#auth-submit");
+      if (new URLSearchParams(window.location.search).get("reset_password") === "1") {
+        submit.disabled = true;
+        submit.textContent = "Updating password…";
+        showAuthError("");
+        try {
+          const { error } = await client.auth.updateUser({ password });
+          if (error) throw error;
+          window.history.replaceState({}, "", window.location.pathname);
+          document.querySelector("#auth-title").textContent = "Password updated";
+          document.querySelector("#auth-description").textContent = "Your password has been changed. You can now continue to PostPilot.";
+          document.querySelector("#auth-password").value = "";
+          document.querySelector("#auth-password").placeholder = "Password updated";
+          showAuthError("Password updated successfully. You can sign in with your new password.");
+          const errorBox = document.querySelector("#auth-error");
+          errorBox.style.display = "block";
+          errorBox.style.background = "#eef7f1";
+          errorBox.style.color = "#216844";
+          submit.textContent = "Continue";
+          submit.disabled = false;
+          submit.type = "button";
+          submit.onclick = () => {
+            document.querySelector("#auth-title").textContent = "Your content, in sync.";
+            document.querySelector("#auth-description").textContent = "Sign in to save your drafts, captions, and publishing calendar across devices.";
+            submit.type = "submit";
+            submit.onclick = null;
+            submit.textContent = "Sign in";
+            showAuthError("");
+          };
+        } catch (error) {
+          showAuthError(error.message || "Could not update password. Request a fresh reset link and try again.");
+          submit.disabled = false;
+          submit.textContent = "Update password";
+        }
+        return;
+      }
       submit.disabled = true;
       submit.textContent = isSignup ? "Creating account…" : "Signing in…";
       showAuthError("");
