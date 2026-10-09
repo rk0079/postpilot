@@ -97,6 +97,8 @@
     if (profile) {
       profile.innerHTML = "<strong>" + escapeHtml(currentUser.user_metadata?.full_name || currentUser.user_metadata?.name || (currentUser.email || "My account").split("@")[0]) + "</strong><small>Signed in</small>";
     }
+    ensureInstagramPanel();
+    refreshInstagramStatus();
     const workspace = document.querySelector(".workspace-meta");
     if (workspace) workspace.innerHTML = "<strong>My workspace</strong><small>Connected to Supabase</small>";
     await loadPosts();
@@ -106,7 +108,7 @@
   async function loadPosts() {
     if (!currentUser) return;
     const { data, error } = await client.from("posts")
-      .select("id,title,content_type,caption,status,scheduled_at,created_at,media_url")
+      .select("id,title,content_type,caption,hashtags,status,approval_status,publish_error,scheduled_at,created_at,media_url")
       .eq("user_id", currentUser.id)
       .order("scheduled_at", { ascending: true, nullsFirst: false })
       .limit(200);
@@ -160,7 +162,7 @@
             item.append(title, details);
             const actions = document.createElement("div");
             actions.className = "post-actions calendar-post-actions";
-            actions.innerHTML = `<button class="row-menu publish-action" type="button" data-publish-manually="${escapeHtml(post.id)}" data-caption-text="${escapeHtml(post.caption || "")}" data-hashtags-text="${escapeHtml(Array.isArray(post.hashtags) ? post.hashtags.map((tag) => "#" + String(tag).replace(/^#+/, "")).join(" ") : "")}">Publish manually</button><button class="row-menu" type="button" data-copy-caption="${escapeHtml(post.id)}">Copy caption</button>${post.media_url ? `<button class="row-menu" type="button" data-save-media="${escapeHtml(post.id)}">Open media</button>` : ""}<button class="row-menu" type="button" data-open-instagram="${escapeHtml(post.id)}">Open Instagram</button>`;
+            actions.innerHTML = `<button class="row-menu publish-action" type="button" data-approve-publish="${escapeHtml(post.id)}">Approve &amp; publish</button><button class="row-menu publish-action" type="button" data-publish-manually="${escapeHtml(post.id)}" data-caption-text="${escapeHtml(post.caption || "")}" data-hashtags-text="${escapeHtml(Array.isArray(post.hashtags) ? post.hashtags.map((tag) => "#" + String(tag).replace(/^#+/, "")).join(" ") : "")}">Publish manually</button><button class="row-menu" type="button" data-copy-caption="${escapeHtml(post.id)}">Copy caption</button>${post.media_url ? `<button class="row-menu" type="button" data-save-media="${escapeHtml(post.id)}">Open media</button>` : ""}<button class="row-menu" type="button" data-open-instagram="${escapeHtml(post.id)}">Open Instagram</button>`;
             item.appendChild(actions);
             list.appendChild(item);
           });
@@ -194,7 +196,7 @@
             <div class="content-name"><div class="table-thumb thumb-portrait"></div><span><strong>${escapeHtml(post.title)}</strong><small>${escapeHtml((post.caption || "").slice(0, 70) || "No caption added")}</small></span></div>
             <span class="type-tag">${escapeHtml(post.content_type)}</span>
             <span class="status-tag ${statusClass}"><i></i> ${escapeHtml(post.status)}</span>
-            <span class="row-date">${escapeHtml(date)}</span><div class="post-actions"><button class="row-menu publish-action" type="button" data-publish-manually="${escapeHtml(post.id)}">Publish manually</button><button class="row-menu" type="button" data-copy-caption="${escapeHtml(post.id)}" aria-label="Copy caption">Copy caption</button>${post.media_url ? `<button class="row-menu" type="button" data-save-media="${escapeHtml(post.id)}">Open media</button>` : ""}<button class="row-menu" type="button" data-open-instagram="${escapeHtml(post.id)}">Open Instagram</button>${post.scheduled_at && post.status !== "published" ? `<button class="row-menu" type="button" data-remind-post="${escapeHtml(post.id)}" data-remind-at="${escapeHtml(post.scheduled_at)}">Remind me</button>` : ""}</div>`;
+            <span class="row-date">${escapeHtml(date)}</span><div class="post-actions"><button class="row-menu publish-action" type="button" data-approve-publish="${escapeHtml(post.id)}">Approve &amp; publish</button><button class="row-menu publish-action" type="button" data-publish-manually="${escapeHtml(post.id)}">Publish manually</button><button class="row-menu" type="button" data-copy-caption="${escapeHtml(post.id)}" aria-label="Copy caption">Copy caption</button>${post.media_url ? `<button class="row-menu" type="button" data-save-media="${escapeHtml(post.id)}">Open media</button>` : ""}<button class="row-menu" type="button" data-open-instagram="${escapeHtml(post.id)}">Open Instagram</button>${post.scheduled_at && post.status !== "published" ? `<button class="row-menu" type="button" data-remind-post="${escapeHtml(post.id)}" data-remind-at="${escapeHtml(post.scheduled_at)}">Remind me</button>` : ""}</div>`;
           rows.appendChild(row);
         });
       }
@@ -392,6 +394,62 @@
     }
   }
 
+  function ensureInstagramPanel() {
+    if (document.querySelector("#instagram-connection-panel")) return;
+    const welcome = document.querySelector(".welcome-row");
+    if (!welcome) return;
+    const panel = document.createElement("section");
+    panel.id = "instagram-connection-panel";
+    panel.className = "panel";
+    panel.style.cssText = "margin:18px 0;padding:16px 20px;display:flex;align-items:center;justify-content:space-between;gap:16px;flex-wrap:wrap";
+    panel.innerHTML = '<div><strong>Instagram publishing · Approval required</strong><p id="instagram-connection-status" style="margin:5px 0 0;color:var(--muted,#777)">Checking connection…</p><small>Posts are never auto-published without your approval.</small></div><button class="primary-button" id="instagram-connect-button" type="button">Connect Instagram Business</button>';
+    welcome.insertAdjacentElement("afterend", panel);
+    panel.querySelector("#instagram-connect-button").addEventListener("click", async (event) => {
+      const button = event.currentTarget;
+      button.disabled = true;
+      button.textContent = "Connecting…";
+      try {
+        const { data, error } = await client.functions.invoke("instagram-publishing", { body: { action: "connect-url" } });
+        if (error) throw error;
+        if (data?.error) throw new Error(data.error);
+        if (!data?.url) throw new Error("Connection URL was not returned.");
+        window.location.href = data.url;
+      } catch (error) {
+        toast("Instagram connection not configured: " + (error.message || "check Meta app setup and Edge Function deployment."));
+        button.disabled = false;
+        button.textContent = "Connect Instagram Business";
+      }
+    });
+    const query = new URLSearchParams(window.location.search);
+    if (query.get("instagram_connected") === "1") {
+      toast("Instagram connected. Publishing still requires approval for each post.");
+      query.delete("instagram_connected");
+      history.replaceState({}, "", window.location.pathname + (query.toString() ? "?" + query : ""));
+    } else if (query.has("instagram_error")) {
+      toast("Instagram connection needs attention: " + query.get("instagram_error").replaceAll("_", " "));
+      query.delete("instagram_error");
+      history.replaceState({}, "", window.location.pathname + (query.toString() ? "?" + query : ""));
+    }
+  }
+
+  async function refreshInstagramStatus() {
+    const status = document.querySelector("#instagram-connection-status");
+    const button = document.querySelector("#instagram-connect-button");
+    if (!status || !currentUser) return;
+    try {
+      const { data, error } = await client.functions.invoke("instagram-publishing", { body: { action: "status" } });
+      if (error || data?.error) throw error || new Error(data.error);
+      if (data?.connected) {
+        status.textContent = "Connected as @" + (data.username || "Instagram Business") + ". Review each post before publishing.";
+        if (button) button.textContent = "Reconnect Instagram";
+      } else {
+        status.textContent = "Not connected yet. Connect a professional Instagram Business account linked to a Facebook Page.";
+      }
+    } catch (_) {
+      status.textContent = "Backend setup required: apply the SQL migration, deploy the Edge Function, and configure Meta secrets.";
+    }
+  }
+
   function bindPostActions() {
     document.addEventListener("click", async (event) => {
       const copyButton = event.target.closest("[data-copy-caption]");
@@ -399,7 +457,26 @@
       const remindButton = event.target.closest("[data-remind-post]");
       const mediaButton = event.target.closest("[data-save-media]");
       const publishButton = event.target.closest("[data-publish-manually]");
-      if (!copyButton && !openButton && !remindButton && !mediaButton && !publishButton) return;
+      const approveButton = event.target.closest("[data-approve-publish]");
+      if (!copyButton && !openButton && !remindButton && !mediaButton && !publishButton && !approveButton) return;
+      if (approveButton) {
+        if (!currentUser) { toast("Sign in before approving a post."); return; }
+        if (!window.confirm("Approve this post and publish it to Instagram now? This will publish publicly if Meta accepts it.")) return;
+        approveButton.disabled = true;
+        approveButton.textContent = "Publishing…";
+        try {
+          const { data, error } = await client.functions.invoke("instagram-publishing", { body: { action: "approve-publish", postId: approveButton.dataset.approvePublish } });
+          if (error) throw error;
+          if (data?.error) throw new Error(data.error);
+          toast("Meta confirmed publishing. Refreshing your posts…");
+          await loadPosts();
+        } catch (error) {
+          toast("Not published: " + (error.message || "Instagram connection or Meta setup is incomplete."));
+          approveButton.disabled = false;
+          approveButton.textContent = "Approve & publish";
+        }
+        return;
+      }
       // Launch Instagram synchronously from the tap; iOS Safari may block pop-ups after awaited requests.
       const mediaTab = mediaButton ? window.open("about:blank", "_blank") : null;
       const instagramTab = (publishButton || openButton) ? window.open("https://www.instagram.com/", "_blank") : null;
