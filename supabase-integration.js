@@ -243,7 +243,7 @@
       title,
       content_type: contentType.toLowerCase(),
       caption,
-      hashtags: (caption.match(/#[\\p{L}\\p{N}_]+/gu) || []),
+      hashtags: (caption.match(/#[\p{L}\p{N}_]+/gu) || []),
       media_url: mediaPath,
       original_filename: file?.name || null,
       status,
@@ -302,10 +302,10 @@
       const isVideo = file.type.startsWith("video/");
       rows.push({
         user_id: currentUser.id,
-        title: file.name.replace(/\\.[^.]+$/, "") || "Untitled content",
+        title: file.name.replace(/\.[^.]+$/, "") || "Untitled content",
         content_type: isVideo ? "reel" : "photo",
         caption: bulkCaption,
-        hashtags: (bulkCaption.match(/#[\\p{L}\\p{N}_]+/gu) || []),
+        hashtags: (bulkCaption.match(/#[\p{L}\p{N}_]+/gu) || []),
         media_url: path,
         original_filename: file.name,
         status: "scheduled",
