@@ -160,7 +160,7 @@
             item.append(title, details);
             const actions = document.createElement("div");
             actions.className = "post-actions calendar-post-actions";
-            actions.innerHTML = `<button class="row-menu publish-action" type="button" data-publish-manually="${escapeHtml(post.id)}">Publish manually</button><button class="row-menu" type="button" data-copy-caption="${escapeHtml(post.id)}">Copy caption</button>${post.media_url ? `<button class="row-menu" type="button" data-save-media="${escapeHtml(post.id)}">Open media</button>` : ""}<button class="row-menu" type="button" data-open-instagram="${escapeHtml(post.id)}">Open Instagram</button>`;
+            actions.innerHTML = `<button class="row-menu publish-action" type="button" data-publish-manually="${escapeHtml(post.id)}" data-caption-text="${escapeHtml(post.caption || "")}" data-hashtags-text="${escapeHtml(Array.isArray(post.hashtags) ? post.hashtags.map((tag) => "#" + String(tag).replace(/^#+/, "")).join(" ") : "")}">Publish manually</button><button class="row-menu" type="button" data-copy-caption="${escapeHtml(post.id)}">Copy caption</button>${post.media_url ? `<button class="row-menu" type="button" data-save-media="${escapeHtml(post.id)}">Open media</button>` : ""}<button class="row-menu" type="button" data-open-instagram="${escapeHtml(post.id)}">Open Instagram</button>`;
             item.appendChild(actions);
             list.appendChild(item);
           });
@@ -400,9 +400,11 @@
       const mediaButton = event.target.closest("[data-save-media]");
       const publishButton = event.target.closest("[data-publish-manually]");
       if (!copyButton && !openButton && !remindButton && !mediaButton && !publishButton) return;
-      // Open a tab immediately inside the user gesture so mobile browsers do not block the later signed-media URL.
+      // Launch Instagram synchronously from the tap; iOS Safari may block pop-ups after awaited requests.
       const mediaTab = mediaButton ? window.open("about:blank", "_blank") : null;
+      const instagramTab = (publishButton || openButton) ? window.open("https://www.instagram.com/", "_blank") : null;
       if (!currentUser) {
+        if (mediaTab) mediaTab.close();
         toast("Sign in to manage your saved posts.");
         return;
       }
@@ -423,14 +425,12 @@
         try {
           await navigator.clipboard.writeText(text);
           if (publishButton) {
-            window.open("https://www.instagram.com/", "_blank", "noopener,noreferrer");
-            toast(post.media_url ? "Caption copied and Instagram opened. Select your media in Instagram to finish publishing." : "Caption copied and Instagram opened. This post has no uploaded media attached.");
+            toast(post.media_url ? "Caption copied. Select your media in Instagram to finish publishing." : "Caption copied. This post has no uploaded media attached.");
           } else {
             toast("Caption copied. Paste it into Instagram when you post.");
           }
         } catch (_) {
           if (publishButton) {
-            window.open("https://www.instagram.com/", "_blank", "noopener,noreferrer");
             toast("Instagram opened, but caption copying was blocked. Copy the caption manually before publishing.");
           } else {
             toast("Clipboard access was blocked. Open the post and copy its caption manually.");
@@ -455,8 +455,7 @@
         }
       }
       if (openButton) {
-        window.open("https://www.instagram.com/", "_blank", "noopener,noreferrer");
-        toast("Instagram opened. Open the saved media, then paste your caption to publish manually.");
+        toast(instagramTab ? "Instagram opened. Open the saved media, then paste your caption to publish manually." : "Your browser blocked Instagram. Allow pop-ups for PostPilot and try again.");
       }
       if (remindButton) {
         if ("Notification" in window && Notification.permission === "default") {
