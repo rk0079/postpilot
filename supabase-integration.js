@@ -607,7 +607,7 @@
     panel.id = "instagram-connection-panel";
     panel.className = "panel";
     panel.style.cssText = "margin:18px 0;padding:16px 20px;display:flex;align-items:center;justify-content:space-between;gap:16px;flex-wrap:wrap";
-    panel.innerHTML = '<div><strong>Instagram publishing · Approval required</strong><p id="instagram-connection-status" style="margin:5px 0 0;color:var(--muted,#777)">Checking connection…</p><small>Posts are never auto-published without your approval.</small></div><div style="display:flex;gap:8px;flex-wrap:wrap"><button class="primary-button" id="instagram-connect-button" type="button">Connect Instagram Business</button><button class="secondary-button" id="instagram-disconnect-button" type="button" hidden>Disconnect</button></div>';
+    panel.innerHTML = '<div><strong>Instagram publishing · Approval required</strong><p id="instagram-connection-status" style="margin:5px 0 0;color:var(--muted,#777)">Checking connection…</p><small>Posts are never auto-published without your approval.</small></div><div style="display:flex;gap:8px;flex-wrap:wrap"><button class="primary-button" id="instagram-connect-button" type="button">Connect Instagram Business</button><button id="instagram-disconnect-button" type="button" style="padding:10px 14px;border:1px solid var(--border,#ddd);border-radius:10px;background:transparent;color:var(--text,#333);font-weight:600" hidden>Disconnect</button></div>';
     welcome.insertAdjacentElement("afterend", panel);
     panel.querySelector("#instagram-disconnect-button").addEventListener("click", async (event) => {
       if (!window.confirm("Disconnect this Instagram account from your PostPilot workspace? Your saved posts will remain.")) return;
