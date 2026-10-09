@@ -217,8 +217,10 @@
           .slice(0, 12).forEach((post) => {
             const item = document.createElement("article");
             item.className = "calendar-post-item";
+            const scheduledMs = post.scheduled_at ? new Date(post.scheduled_at).getTime() : null;
+            const isOverdue = post.status === "scheduled" && scheduledMs !== null && scheduledMs <= Date.now();
             const date = post.scheduled_at
-              ? new Date(post.scheduled_at).toLocaleString([], { weekday: "short", month: "short", day: "numeric", hour: "numeric", minute: "2-digit" })
+              ? (isOverdue ? "OVERDUE · " : "") + new Date(post.scheduled_at).toLocaleString([], { weekday: "short", month: "short", day: "numeric", hour: "numeric", minute: "2-digit" })
               : "Draft · no date set";
             const title = document.createElement("strong");
             title.textContent = post.title || "Untitled content";
@@ -227,7 +229,7 @@
             item.append(title, details);
             const actions = document.createElement("div");
             actions.className = "post-actions calendar-post-actions";
-            actions.innerHTML = `${["scheduled","draft"].includes(post.status) ? `<button class="row-menu publish-action" type="button" data-approve-publish="${escapeHtml(post.id)}">Approve &amp; publish</button>` : ""}<button class="row-menu publish-action" type="button" data-publish-manually="${escapeHtml(post.id)}" data-caption-text="${escapeHtml(post.caption || "")}" data-hashtags-text="${escapeHtml(Array.isArray(post.hashtags) ? post.hashtags.map((tag) => "#" + String(tag).replace(/^#+/, "")).join(" ") : "")}">Publish manually</button><button class="row-menu" type="button" data-copy-caption="${escapeHtml(post.id)}">Copy caption</button>${post.media_url ? `<button class="row-menu" type="button" data-save-media="${escapeHtml(post.id)}">Open media</button>` : ""}<button class="row-menu" type="button" data-open-instagram="${escapeHtml(post.id)}">Open Instagram</button>`;
+            actions.innerHTML = `${["scheduled","draft"].includes(post.status) ? `<button class="row-menu publish-action" type="button" data-approve-publish="${escapeHtml(post.id)}" data-scheduled-at="${escapeHtml(post.scheduled_at || "")}">Approve &amp; publish now</button>` : ""}<button class="row-menu publish-action" type="button" data-publish-manually="${escapeHtml(post.id)}" data-caption-text="${escapeHtml(post.caption || "")}" data-hashtags-text="${escapeHtml(Array.isArray(post.hashtags) ? post.hashtags.map((tag) => "#" + String(tag).replace(/^#+/, "")).join(" ") : "")}">Publish manually</button><button class="row-menu" type="button" data-copy-caption="${escapeHtml(post.id)}">Copy caption</button>${post.media_url ? `<button class="row-menu" type="button" data-save-media="${escapeHtml(post.id)}">Open media</button>` : ""}<button class="row-menu" type="button" data-open-instagram="${escapeHtml(post.id)}">Open Instagram</button>`;
             item.appendChild(actions);
             list.appendChild(item);
           });
@@ -254,13 +256,15 @@
       } else {
         posts.slice(0, 8).forEach((post) => {
           const date = post.scheduled_at ? new Date(post.scheduled_at).toLocaleString([], { dateStyle:"medium", timeStyle:"short" }) : "No date set";
+          const isOverdue = post.status === "scheduled" && post.scheduled_at && new Date(post.scheduled_at).getTime() <= Date.now();
           const statusClass = post.status === "published" ? "status-published" : post.status === "draft" ? "status-draft" : "status-scheduled";
+          const statusLabel = post.status === "scheduled" && isOverdue ? "overdue · awaiting approval" : post.status === "scheduled" ? "scheduled" : post.status;
           const row = document.createElement("div");
           row.className = "content-row";
           row.innerHTML = `
             <div class="content-name"><div class="table-thumb thumb-portrait"></div><span><strong>${escapeHtml(post.title)}</strong><small>${escapeHtml((post.caption || "").slice(0, 70) || "No caption added")}</small></span></div>
             <span class="type-tag">${escapeHtml(post.content_type)}</span>
-            <span class="status-tag ${statusClass}"><i></i> ${escapeHtml(post.status)}${post.approval_status === "pending" ? " · awaiting approval" : post.approval_status === "failed" ? " · publish failed" : ""}</span>
+            <span class="status-tag ${statusClass}"><i></i> ${escapeHtml(statusLabel)}${post.approval_status === "pending" ? " · awaiting approval" : post.approval_status === "failed" ? " · publish failed" : ""}</span>
             <span class="row-date">${escapeHtml(date)}</span><div class="post-actions"><button class="row-menu publish-action" type="button" data-approve-publish="${escapeHtml(post.id)}">Approve &amp; publish</button><button class="row-menu publish-action" type="button" data-publish-manually="${escapeHtml(post.id)}">Publish manually</button><button class="row-menu" type="button" data-copy-caption="${escapeHtml(post.id)}" aria-label="Copy caption">Copy caption</button>${post.media_url ? `<button class="row-menu" type="button" data-save-media="${escapeHtml(post.id)}">Open media</button>` : ""}<button class="row-menu" type="button" data-open-instagram="${escapeHtml(post.id)}">Open Instagram</button>${post.scheduled_at && post.status !== "published" ? `<button class="row-menu" type="button" data-remind-post="${escapeHtml(post.id)}" data-remind-at="${escapeHtml(post.scheduled_at)}">Remind me</button>` : ""}</div>`;
           rows.appendChild(row);
         });
@@ -296,7 +300,7 @@
     const caption = document.querySelector("#content-caption")?.value.trim() || "";
     const file = document.querySelector("#file-input")?.files?.[0] || null;
     const scheduledAt = getScheduledDate("#schedule-date", "#schedule-time", 60);
-    const status = new Date(scheduledAt).getTime() > Date.now() ? "scheduled" : "draft";
+    const status = "scheduled"; // Past-due posts remain scheduled and can be published after approval.
     let mediaPath = null;
     if (file) {
       const safeName = file.name.normalize("NFKD").replace(/[^a-zA-Z0-9._-]+/g, "-").slice(-120) || "upload";
@@ -526,7 +530,12 @@
       if (!copyButton && !openButton && !remindButton && !mediaButton && !publishButton && !approveButton) return;
       if (approveButton) {
         if (!currentUser) { toast("Sign in before approving a post."); return; }
-        if (!window.confirm("Approve this post and publish it to Instagram now? This will publish publicly if Meta accepts it.")) return;
+        const scheduledAt = approveButton.dataset.scheduledAt;
+        const isFuture = scheduledAt && new Date(scheduledAt).getTime() > Date.now();
+        const prompt = isFuture
+          ? "This post is scheduled for " + new Date(scheduledAt).toLocaleString() + ". Approve & publish now will publish it immediately, not on that future date. Continue?"
+          : "This post is due or overdue. Approve & publish it to Instagram now? It will publish publicly if Meta accepts it.";
+        if (!window.confirm(prompt)) return;
         approveButton.disabled = true;
         approveButton.textContent = "Publishing…";
         try {
@@ -538,7 +547,7 @@
         } catch (error) {
           toast("Not published: " + (error.message || "Instagram connection or Meta setup is incomplete."));
           approveButton.disabled = false;
-          approveButton.textContent = "Approve & publish";
+          approveButton.textContent = "Approve & publish now";
         }
         return;
       }
