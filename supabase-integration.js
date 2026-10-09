@@ -1,7 +1,7 @@
 (() => {
   const SUPABASE_URL = "https://jzwnjzagmijikbhxtrcn.supabase.co";
   const SUPABASE_PUBLISHABLE_KEY = "sb_publishable_5pGDVM-9-TKyAOKTvQHWKw_j0ZKTy4p";
-  const client = window.supabase.createClient(SUPABASE_URL, SUPABASE_PUBLISHABLE_KEY);
+  const client = window.supabase.createClient(SUPABASE_URL, SUPABASE_PUBLISHABLE_KEY, { auth: { storage: window.sessionStorage, persistSession: true, autoRefreshToken: true, detectSessionInUrl: true } });
 
   let currentUser = null;
   let isSignup = false;
@@ -31,6 +31,10 @@
         <h2 id="auth-title">Your content, in sync.</h2>
         <p id="auth-description">Sign in to save your drafts, captions, and publishing calendar across devices.</p>
         <form id="auth-form">
+          <label class="auth-field" for="auth-full-name" id="auth-full-name-label" hidden>Full name</label>
+          <input class="auth-input" id="auth-full-name" type="text" autocomplete="name" placeholder="Your full name" minlength="2" hidden>
+          <label class="auth-field" for="auth-workspace" id="auth-workspace-label" hidden>Business or workspace name</label>
+          <input class="auth-input" id="auth-workspace" type="text" autocomplete="organization" placeholder="Your brand or business" minlength="2" hidden>
           <label class="auth-field" for="auth-email">Email address</label>
           <input class="auth-input" id="auth-email" type="email" autocomplete="email" placeholder="you@example.com" required>
           <label class="auth-field" for="auth-password">Password</label>
@@ -82,6 +86,12 @@
       document.querySelector("#auth-switch-copy").textContent = isSignup ? "Already have an account?" : "New to PostPilot?";
       document.querySelector("#auth-switch").textContent = isSignup ? "Sign in" : "Create an account";
       document.querySelector("#auth-password").autocomplete = isSignup ? "new-password" : "current-password";
+      document.querySelector("#auth-full-name-label").hidden = !isSignup;
+      document.querySelector("#auth-full-name").hidden = !isSignup;
+      document.querySelector("#auth-full-name").required = isSignup;
+      document.querySelector("#auth-workspace-label").hidden = !isSignup;
+      document.querySelector("#auth-workspace").hidden = !isSignup;
+      document.querySelector("#auth-workspace").required = isSignup;
       document.querySelector("#auth-forgot-row").hidden = isSignup;
       showAuthError("");
     });
@@ -90,6 +100,8 @@
       event.preventDefault();
       const email = document.querySelector("#auth-email").value.trim();
       const password = document.querySelector("#auth-password").value;
+      const fullName = document.querySelector("#auth-full-name").value.trim();
+      const workspaceName = document.querySelector("#auth-workspace").value.trim();
       const submit = document.querySelector("#auth-submit");
       if (isPasswordRecovery || new URLSearchParams(window.location.search).get("reset_password") === "1" || new URLSearchParams(window.location.hash.replace(/^#/, "")).get("type") === "recovery") {
         submit.disabled = true;
@@ -136,7 +148,7 @@
       showAuthError("");
       try {
         const result = isSignup
-          ? await client.auth.signUp({ email, password })
+          ? await client.auth.signUp({ email, password, options: { data: { full_name: fullName, workspace_name: workspaceName } } })
           : await client.auth.signInWithPassword({ email, password });
         if (result.error) throw result.error;
         if (isSignup && !result.data.session) {
@@ -174,6 +186,42 @@
     showAuthError("");
   }
 
+  function showProfileSetup() {
+    const backdrop = document.querySelector("#auth-backdrop");
+    if (backdrop) backdrop.style.display = "grid";
+    document.querySelector("#auth-title").textContent = "Set up your private workspace";
+    document.querySelector("#auth-description").textContent = "Tell us who you are and what workspace this content belongs to. Your posts and connected accounts stay separate from other users.";
+    document.querySelector("#auth-form").innerHTML = `
+      <label class="auth-field" for="profile-full-name">Full name *</label>
+      <input class="auth-input" id="profile-full-name" type="text" autocomplete="name" minlength="2" placeholder="Your full name" required>
+      <label class="auth-field" for="profile-workspace-name">Business or workspace name *</label>
+      <input class="auth-input" id="profile-workspace-name" type="text" autocomplete="organization" minlength="2" placeholder="Your brand or business" required>
+      <div class="auth-error" id="auth-error" role="alert"></div>
+      <button class="auth-submit" id="profile-save" type="submit">Save profile and continue</button>`;
+    document.querySelector(".auth-switch").hidden = true;
+    document.querySelector(".auth-note").textContent = "Required profile details. Each account has its own private posts, schedule, and Instagram connection.";
+    document.querySelector("#auth-form").addEventListener("submit", async (event) => {
+      event.preventDefault();
+      const button = document.querySelector("#profile-save");
+      button.disabled = true;
+      button.textContent = "Saving…";
+      const fullName = document.querySelector("#profile-full-name").value.trim();
+      const workspaceName = document.querySelector("#profile-workspace-name").value.trim();
+      try {
+        const { error } = await client.from("profiles").upsert({ id: currentUser.id, full_name: fullName, workspace_name: workspaceName, updated_at: new Date().toISOString() });
+        if (error) throw error;
+        await client.auth.updateUser({ data: { full_name: fullName, workspace_name: workspaceName } });
+        document.querySelector("#auth-backdrop").remove();
+        buildAuth();
+        await finishSignIn();
+      } catch (error) {
+        showAuthError(error.message || "Could not save profile. Please try again.");
+        button.disabled = false;
+        button.textContent = "Save profile and continue";
+      }
+    }, { once: true });
+  }
+
   function showAuthError(message) {
     const el = document.querySelector("#auth-error");
     if (!el) return;
@@ -182,16 +230,40 @@
   }
 
   async function finishSignIn() {
+    if (!currentUser) return;
+    const fullName = currentUser.user_metadata?.full_name || currentUser.user_metadata?.name || "";
+    const workspaceName = currentUser.user_metadata?.workspace_name || "";
+    const { data: savedProfile, error: profileReadError } = await client.from("profiles").select("full_name,workspace_name").eq("id", currentUser.id).maybeSingle();
+    if (profileReadError) { toast("Could not load your profile: " + profileReadError.message); return; }
+    if (!savedProfile && (!fullName.trim() || !workspaceName.trim())) { showProfileSetup(); return; }
+    const profileData = savedProfile || { full_name: fullName.trim(), workspace_name: workspaceName.trim() };
+    const { error: profileWriteError } = await client.from("profiles").upsert({ id: currentUser.id, full_name: profileData.full_name, workspace_name: profileData.workspace_name, updated_at: new Date().toISOString() });
+    if (profileWriteError) { toast("Could not save your profile: " + profileWriteError.message); return; }
     const backdrop = document.querySelector("#auth-backdrop");
     if (backdrop) backdrop.style.display = "none";
+    const profileRow = document.querySelector(".profile-row");
+    if (profileRow && !document.querySelector("#auth-signout")) {
+      const signout = document.createElement("button");
+      signout.id = "auth-signout";
+      signout.type = "button";
+      signout.textContent = "Sign out";
+      signout.style.cssText = "margin-left:auto;padding:7px 10px;border-radius:9px;background:#f1effa;color:#5743b1;font-weight:600;";
+      signout.addEventListener("click", async () => {
+        await client.auth.signOut();
+        currentUser = null;
+        toast("Signed out. This session is now closed.");
+        window.location.reload();
+      });
+      profileRow.appendChild(signout);
+    }
     const profile = document.querySelector(".profile-copy");
     if (profile) {
-      profile.innerHTML = "<strong>" + escapeHtml(currentUser.user_metadata?.full_name || currentUser.user_metadata?.name || (currentUser.email || "My account").split("@")[0]) + "</strong><small>Signed in</small>";
+      profile.innerHTML = "<strong>" + escapeHtml(profileData.full_name) + "</strong><small>" + escapeHtml(profileData.workspace_name) + "</small>";
     }
     ensureInstagramPanel();
     refreshInstagramStatus();
     const workspace = document.querySelector(".workspace-meta");
-    if (workspace) workspace.innerHTML = "<strong>My workspace</strong><small>Connected to Supabase</small>";
+    if (workspace) workspace.innerHTML = "<strong>" + escapeHtml(profileData.workspace_name) + "</strong><small>Private workspace</small>";
     await loadPosts();
     toast("Connected to Supabase — your posts can now be saved.");
   }
