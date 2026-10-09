@@ -165,3 +165,51 @@ h2 { font-family: "Space Grotesk", sans-serif; letter-spacing: -.65px; font-size
 .auth-note{font-size:11px;color:#888399;margin-top:15px;line-height:1.45}
 .user-email-chip{font-size:11px;color:#6e648c;max-width:140px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
 @media(max-width:560px){.auth-card{padding:23px 20px;border-radius:18px}}
+
+
+/* Responsive, real-data calendar and honest empty states */
+.week-calendar {
+  display: block;
+  min-width: 0;
+  width: 100%;
+  overflow: visible;
+  border: 0;
+  border-radius: 10px;
+}
+.calendar-empty-state {
+  display: block;
+  width: 100%;
+  min-width: 0;
+  padding: 28px 18px;
+  border: 1px solid #f0eff3;
+  border-radius: 12px;
+  color: #817f91;
+  background: #fcfbff;
+  font-size: 13px;
+  line-height: 1.6;
+  overflow-wrap: anywhere;
+  text-align: center;
+}
+.calendar-post-list { display: grid; gap: 8px; width: 100%; }
+.calendar-post-item {
+  display: flex;
+  flex-direction: column;
+  gap: 5px;
+  width: 100%;
+  min-width: 0;
+  padding: 12px 14px;
+  border: 1px solid #f0eff3;
+  border-radius: 10px;
+  background: #fff;
+}
+.calendar-post-item strong { font-size: 12px; line-height: 1.4; overflow-wrap: anywhere; }
+.calendar-post-item span { color: var(--muted); font-size: 11px; line-height: 1.5; overflow-wrap: anywhere; }
+.best-time-panel .chart-area { display: none; }
+.best-time-panel .best-time-main { margin-bottom: 0; }
+@media (max-width: 620px) {
+  .calendar-panel { min-width: 0; }
+  .calendar-heading { gap: 12px; align-items: flex-start; }
+  .heading-actions { flex-shrink: 0; gap: 6px; }
+  .calendar-meta { flex-wrap: wrap; font-size: 10px; }
+  .calendar-empty-state { padding: 24px 14px; font-size: 13px; }
+}
