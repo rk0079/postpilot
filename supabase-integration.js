@@ -410,7 +410,7 @@
       }
       if (copyButton) {
         const tags = Array.isArray(post.hashtags) ? post.hashtags.map((tag) => "#" + String(tag).replace(/^#+/, "")).join(" ") : "";
-        const text = [post.caption || "", tags].filter(Boolean).join("\\n\\n");
+        const text = [post.caption || "", tags].filter(Boolean).join("\n\n");
         try {
           await navigator.clipboard.writeText(text);
           toast("Caption copied. Paste it into Instagram when you post.");
