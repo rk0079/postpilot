@@ -213,3 +213,103 @@ h2 { font-family: "Space Grotesk", sans-serif; letter-spacing: -.65px; font-size
   .calendar-meta { flex-wrap: wrap; font-size: 10px; }
   .calendar-empty-state { padding: 24px 14px; font-size: 13px; }
 }
+
+
+/* PostPilot UI refresh — clearer Buffer-inspired workspace and visible publishing actions */
+:root {
+  --ink: #202334;
+  --muted: #72788a;
+  --line: #e7eaf0;
+  --surface: #ffffff;
+  --canvas: #f7f8fb;
+  --purple: #3563e9;
+  --purple-dark: #234fc7;
+  --purple-pale: #edf2ff;
+  --navy: #172033;
+  --shadow: 0 8px 28px rgba(22, 34, 58, .06);
+}
+body { background: var(--canvas); color: var(--ink); }
+.sidebar { background: #fff; color: #242a3b; border-right: 1px solid #e8ebf2; }
+.brand-name, .workspace-meta strong, .profile-copy strong { color: #202638; }
+.workspace-switcher { background: #f7f8fc; border-color: #e6e9f1; }
+.sidebar-label { color: #8a91a2; }
+.nav-item { color: #626b7e; border-radius: 9px; }
+.nav-item:hover { background: #f4f6fb; color: #27324b; }
+.nav-item.active { background: #edf2ff; color: #2857d8; font-weight: 700; }
+.nav-item.active i { color: #2857d8; }
+.pro-card { background: linear-gradient(145deg, #f0f4ff, #fafbff); border: 1px solid #e0e8ff; color: #26365e; }
+.pro-card p { color: #66718a; }
+.profile-row { border-top-color: #e8ebf2; }
+.main-area { min-width: 0; }
+.topbar { position: sticky; top: 0; z-index: 20; background: rgba(255,255,255,.94); backdrop-filter: blur(14px); border-bottom: 1px solid #e8ebf2; }
+.page-content { max-width: 1680px; margin: 0 auto; }
+.welcome-row { align-items: center; }
+.welcome-row h1 { color: #1e2638; letter-spacing: -.8px; }
+.welcome-copy { color: #737b8d; }
+.primary-button, .auth-submit { background: #3563e9; box-shadow: 0 4px 10px rgba(53,99,233,.14); }
+.primary-button:hover, .auth-submit:hover { background: #234fc7; }
+.secondary-button, .outline-button { border-color: #dfe4ed; color: #354056; background: #fff; }
+.secondary-button:hover, .outline-button:hover { border-color: #b9c9f7; background: #f7f9ff; }
+.metric-card, .panel { border: 1px solid #e7eaf1; box-shadow: 0 3px 14px rgba(24,35,60,.025); border-radius: 14px; }
+.metric-card { background: #fff; }
+.panel-heading h2 { color: #222a3c; }
+.section-kicker, .eyebrow { letter-spacing: 1.35px; }
+.calendar-panel, .queue-panel, .quick-panel, .recent-panel, .best-time-panel { background: #fff; }
+.calendar-footer { border-top-color: #edf0f5; }
+.quick-action { border-radius: 10px; }
+.quick-action:hover { background: #f6f8fc; }
+.create-modal { border: 1px solid #e7eaf1; box-shadow: 0 24px 80px rgba(22,34,58,.22); }
+
+/* Make row actions real, readable buttons instead of tiny icon-sized controls. */
+.post-actions { display: flex; align-items: center; justify-content: flex-start; flex-wrap: wrap; gap: 7px; min-width: 0; }
+.post-actions .row-menu {
+  display: inline-flex; place-items: initial; align-items: center; justify-content: center;
+  width: auto; min-height: 32px; padding: 7px 10px; border: 1px solid #dfe5f0;
+  border-radius: 8px; background: #fff; color: #46516a; font: 600 11px/1.2 "DM Sans", sans-serif;
+  white-space: nowrap; cursor: pointer; transition: background .15s, border-color .15s, transform .15s;
+}
+.post-actions .row-menu:hover { background: #f4f7ff; border-color: #b8c9ff; color: #234fc7; }
+.post-actions .row-menu:disabled { opacity: .55; cursor: wait; }
+.post-actions .publish-action { background: #3563e9; border-color: #3563e9; color: #fff; }
+.post-actions .publish-action:hover { background: #234fc7; border-color: #234fc7; color: #fff; }
+.post-actions .publish-action[data-publish-manually] { background: #fff; color: #3563e9; border-color: #cbd7ff; }
+.post-actions .publish-action[data-publish-manually]:hover { background: #edf2ff; }
+.content-row { grid-template-columns: minmax(170px, 1.5fr) 75px minmax(110px, auto) 120px minmax(180px, 1.3fr); gap: 12px; padding: 10px 4px; }
+.content-name strong { font-size: 12px; color: #283147; }
+.content-name small { font-size: 11px; color: #7c8495; }
+.type-tag, .status-tag, .row-date { font-size: 11px; }
+.table-head { grid-template-columns: minmax(170px, 1.5fr) 75px minmax(110px, auto) 120px minmax(180px, 1.3fr); gap: 12px; font-size: 9px; }
+.content-table { overflow-x: auto; }
+.content-row { min-width: 760px; }
+.table-head { min-width: 760px; }
+.calendar-post-list { display: grid; gap: 10px; }
+.calendar-post-item { border: 1px solid #e7eaf1; border-radius: 11px; padding: 12px; background: #fff; }
+.calendar-post-item > strong { color: #263149; font-size: 13px; }
+.calendar-post-item > span { color: #7a8294; font-size: 11px; }
+.calendar-post-actions { margin-top: 10px; }
+#instagram-connection-panel { background: #f5f8ff; border: 1px solid #dce6ff; border-radius: 13px; }
+#instagram-connection-panel strong { color: #26365e; }
+#instagram-connect-button { min-height: 38px; }
+button:focus-visible, input:focus-visible, textarea:focus-visible { outline: 3px solid rgba(53,99,233,.25); outline-offset: 2px; }
+
+@media (max-width: 1180px) {
+  .content-row { grid-template-columns: minmax(160px, 1.3fr) 70px minmax(105px, auto) 110px minmax(160px, 1.3fr); }
+  .table-head { grid-template-columns: minmax(160px, 1.3fr) 70px minmax(105px, auto) 110px minmax(160px, 1.3fr); }
+}
+@media (max-width: 950px) {
+  .sidebar { background: #fff; border-right: 1px solid #e8ebf2; }
+  .post-actions .row-menu { font-size: 10px; padding: 7px 8px; }
+}
+@media (max-width: 620px) {
+  .sidebar { background: #fff; }
+  .welcome-row h1 { font-size: 25px; line-height: 1.2; }
+  .welcome-actions { gap: 8px; }
+  .welcome-actions button { min-height: 40px; font-size: 12px; }
+  .content-row { grid-template-columns: minmax(0, 1fr) auto; min-width: 0; }
+  .content-row .post-actions { grid-column: 1 / -1; display: flex; }
+  .content-row .status-tag { justify-self: end; }
+  .post-actions .row-menu { min-height: 34px; font-size: 11px; }
+  .calendar-post-actions { gap: 6px; }
+  .calendar-post-actions .row-menu { white-space: normal; text-align: center; }
+  .topbar { position: sticky; }
+}
