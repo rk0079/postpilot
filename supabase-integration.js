@@ -229,6 +229,41 @@
     el.style.display = message ? "block" : "none";
   }
 
+  function showGuestMode() {
+    currentUser = null;
+    const backdrop = document.querySelector("#auth-backdrop");
+    if (backdrop) backdrop.style.display = "none";
+    const profile = document.querySelector(".profile-copy");
+    if (profile) profile.innerHTML = "<strong>Guest visitor</strong><small>Browsing preview</small>";
+    const signout = document.querySelector("#auth-signout");
+    if (signout) signout.remove();
+    const profileRow = document.querySelector(".profile-row");
+    if (profileRow && !profileRow.dataset.guestBound) {
+      profileRow.dataset.guestBound = "true";
+      profileRow.addEventListener("click", () => {
+        buildAuth();
+        isSignup = false;
+        document.querySelector("#auth-title").textContent = "Welcome to PostPilot";
+        document.querySelector("#auth-description").textContent = "Sign in or create your own private workspace to save content, manage your calendar, and connect Instagram.";
+        document.querySelector("#auth-backdrop").style.display = "grid";
+      });
+    }
+    const workspace = document.querySelector(".workspace-meta");
+    if (workspace) workspace.innerHTML = "<strong>Guest preview</strong><small>Sign in to save your own work</small>";
+    const guestNote = document.querySelector("#guest-preview-note");
+    if (!guestNote) {
+      const note = document.createElement("div");
+      note.id = "guest-preview-note";
+      note.style.cssText = "margin:0 0 18px;padding:11px 15px;border:1px solid #e9e5fb;border-radius:12px;background:#f7f5ff;color:#62568e;font-size:13px";
+      note.innerHTML = "<strong>Guest mode</strong> — explore the dashboard freely. Sign in when you’re ready to save posts, manage your calendar, or connect Instagram.";
+      const main = document.querySelector(".main-area");
+      const topbar = main?.querySelector(".topbar");
+      if (topbar) topbar.insertAdjacentElement("afterend", note);
+    }
+    const instagramPanel = document.querySelector("#instagram-connection-panel");
+    if (instagramPanel) instagramPanel.remove();
+  }
+
   async function finishSignIn() {
     if (!currentUser) return;
     const fullName = currentUser.user_metadata?.full_name || currentUser.user_metadata?.name || "";
@@ -759,7 +794,7 @@
     if (currentUser) {
       await finishSignIn();
     } else {
-      document.querySelector("#auth-backdrop").style.display = "grid";
+      showGuestMode();
     }
     client.auth.onAuthStateChange((event, session) => {
       if (event === "PASSWORD_RECOVERY" || new URLSearchParams(window.location.hash.replace(/^#/, "")).get("type") === "recovery" || new URLSearchParams(window.location.search).get("reset_password") === "1") {
@@ -769,8 +804,7 @@
       currentUser = session?.user || null;
       if (currentUser) finishSignIn();
       else {
-        const backdrop = document.querySelector("#auth-backdrop");
-        if (backdrop) backdrop.style.display = "grid";
+        showGuestMode();
       }
     });
   });
