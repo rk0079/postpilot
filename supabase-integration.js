@@ -160,7 +160,7 @@
             item.append(title, details);
             const actions = document.createElement("div");
             actions.className = "post-actions calendar-post-actions";
-            actions.innerHTML = `<button class="row-menu" type="button" data-copy-caption="${escapeHtml(post.id)}">Copy caption</button>${post.media_url ? `<button class="row-menu" type="button" data-save-media="${escapeHtml(post.id)}">Open media</button>` : ""}<button class="row-menu" type="button" data-open-instagram="${escapeHtml(post.id)}">Open Instagram</button>`;
+            actions.innerHTML = `<button class="row-menu publish-action" type="button" data-publish-manually="${escapeHtml(post.id)}">Publish manually</button><button class="row-menu" type="button" data-copy-caption="${escapeHtml(post.id)}">Copy caption</button>${post.media_url ? `<button class="row-menu" type="button" data-save-media="${escapeHtml(post.id)}">Open media</button>` : ""}<button class="row-menu" type="button" data-open-instagram="${escapeHtml(post.id)}">Open Instagram</button>`;
             item.appendChild(actions);
             list.appendChild(item);
           });
@@ -194,7 +194,7 @@
             <div class="content-name"><div class="table-thumb thumb-portrait"></div><span><strong>${escapeHtml(post.title)}</strong><small>${escapeHtml((post.caption || "").slice(0, 70) || "No caption added")}</small></span></div>
             <span class="type-tag">${escapeHtml(post.content_type)}</span>
             <span class="status-tag ${statusClass}"><i></i> ${escapeHtml(post.status)}</span>
-            <span class="row-date">${escapeHtml(date)}</span><div class="post-actions"><button class="row-menu" type="button" data-copy-caption="${escapeHtml(post.id)}" aria-label="Copy caption">Copy caption</button>${post.media_url ? `<button class="row-menu" type="button" data-save-media="${escapeHtml(post.id)}">Open media</button>` : ""}<button class="row-menu" type="button" data-open-instagram="${escapeHtml(post.id)}">Open Instagram</button>${post.scheduled_at && post.status !== "published" ? `<button class="row-menu" type="button" data-remind-post="${escapeHtml(post.id)}" data-remind-at="${escapeHtml(post.scheduled_at)}">Remind me</button>` : ""}</div>`;
+            <span class="row-date">${escapeHtml(date)}</span><div class="post-actions"><button class="row-menu publish-action" type="button" data-publish-manually="${escapeHtml(post.id)}">Publish manually</button><button class="row-menu" type="button" data-copy-caption="${escapeHtml(post.id)}" aria-label="Copy caption">Copy caption</button>${post.media_url ? `<button class="row-menu" type="button" data-save-media="${escapeHtml(post.id)}">Open media</button>` : ""}<button class="row-menu" type="button" data-open-instagram="${escapeHtml(post.id)}">Open Instagram</button>${post.scheduled_at && post.status !== "published" ? `<button class="row-menu" type="button" data-remind-post="${escapeHtml(post.id)}" data-remind-at="${escapeHtml(post.scheduled_at)}">Remind me</button>` : ""}</div>`;
           rows.appendChild(row);
         });
       }
@@ -398,16 +398,17 @@
       const openButton = event.target.closest("[data-open-instagram]");
       const remindButton = event.target.closest("[data-remind-post]");
       const mediaButton = event.target.closest("[data-save-media]");
-      if (!copyButton && !openButton && !remindButton && !mediaButton) return;
+      const publishButton = event.target.closest("[data-publish-manually]");
+      if (!copyButton && !openButton && !remindButton && !mediaButton && !publishButton) return;
       // Open a tab immediately inside the user gesture so mobile browsers do not block the later signed-media URL.
       const mediaTab = mediaButton ? window.open("about:blank", "_blank") : null;
       if (!currentUser) {
         toast("Sign in to manage your saved posts.");
         return;
       }
-      const actionButton = copyButton || openButton || remindButton || mediaButton;
+      const actionButton = copyButton || openButton || remindButton || mediaButton || publishButton;
       const postId = actionButton.dataset.copyCaption || actionButton.dataset.openInstagram ||
-        actionButton.dataset.remindPost || actionButton.dataset.saveMedia;
+        actionButton.dataset.remindPost || actionButton.dataset.saveMedia || actionButton.dataset.publishManually;
       const { data: post, error } = await client.from("posts")
         .select("id,title,caption,hashtags,scheduled_at,media_url,original_filename")
         .eq("id", postId).eq("user_id", currentUser.id).maybeSingle();
@@ -416,14 +417,24 @@
         toast("Could not load that post. Please refresh and try again.");
         return;
       }
-      if (copyButton) {
+      if (copyButton || publishButton) {
         const tags = Array.isArray(post.hashtags) ? post.hashtags.map((tag) => "#" + String(tag).replace(/^#+/, "")).join(" ") : "";
         const text = [post.caption || "", tags].filter(Boolean).join("\n\n");
         try {
           await navigator.clipboard.writeText(text);
-          toast("Caption copied. Paste it into Instagram when you post.");
+          if (publishButton) {
+            window.open("https://www.instagram.com/", "_blank", "noopener,noreferrer");
+            toast(post.media_url ? "Caption copied and Instagram opened. Select your media in Instagram to finish publishing." : "Caption copied and Instagram opened. This post has no uploaded media attached.");
+          } else {
+            toast("Caption copied. Paste it into Instagram when you post.");
+          }
         } catch (_) {
-          toast("Clipboard access was blocked. Open the post and copy its caption manually.");
+          if (publishButton) {
+            window.open("https://www.instagram.com/", "_blank", "noopener,noreferrer");
+            toast("Instagram opened, but caption copying was blocked. Copy the caption manually before publishing.");
+          } else {
+            toast("Clipboard access was blocked. Open the post and copy its caption manually.");
+          }
         }
       }
       if (mediaButton) {
