@@ -95,7 +95,7 @@
     if (backdrop) backdrop.style.display = "none";
     const profile = document.querySelector(".profile-copy");
     if (profile) {
-      profile.innerHTML = "<strong>" + escapeHtml(currentUser.email) + "</strong><small>Signed in</small>";
+      profile.innerHTML = "<strong>" + escapeHtml(currentUser.user_metadata?.full_name || currentUser.user_metadata?.name || (currentUser.email || "My account").split("@")[0]) + "</strong><small>Signed in</small>";
     }
     const workspace = document.querySelector(".workspace-meta");
     if (workspace) workspace.innerHTML = "<strong>My workspace</strong><small>Connected to Supabase</small>";
@@ -106,32 +106,82 @@
   async function loadPosts() {
     if (!currentUser) return;
     const { data, error } = await client.from("posts")
-      .select("id,title,content_type,caption,status,scheduled_at,created_at")
+      .select("id,title,content_type,caption,status,scheduled_at,created_at,media_url")
       .eq("user_id", currentUser.id)
       .order("scheduled_at", { ascending: true, nullsFirst: false })
-      .limit(50);
+      .limit(200);
     if (error) {
       console.error("PostPilot load error:", error);
       toast("Signed in, but posts could not load: " + error.message);
       return;
     }
-    const scheduled = (data || []).filter((post) => post.status === "scheduled").length;
-    const count = document.querySelector("#scheduled-count");
-    if (count) count.textContent = String(scheduled);
-    const metric = document.querySelector(".metric-card.accent-lilac .metric-value-row strong");
-    if (metric) metric.textContent = String(scheduled);
+    const posts = data || [];
+    const scheduledPosts = posts.filter((post) => post.status === "scheduled");
+    const drafts = posts.filter((post) => post.status === "draft");
+    const published = posts.filter((post) => post.status === "published");
+    const mediaCount = posts.filter((post) => Boolean(post.media_url)).length;
+    const setText = (selector, value) => {
+      const node = document.querySelector(selector);
+      if (node) node.textContent = String(value);
+    };
+    setText("#scheduled-count", scheduledPosts.length);
+    setText("#draft-count", drafts.length);
+    setText("#metric-scheduled", scheduledPosts.length);
+    setText("#metric-published", published.length);
+    setText("#metric-media", mediaCount);
+    setText("#queue-total", scheduledPosts.length);
+    setText("#queue-scheduled", scheduledPosts.length);
+    setText("#queue-drafts", drafts.length);
+    setText(".nav-item[data-view='library'] .nav-count", posts.length);
+    setText(".recent-panel .heading-count", posts.length + " items");
+
+    const calendar = document.querySelector("#week-calendar");
+    if (calendar) {
+      calendar.innerHTML = "";
+      if (!posts.length) {
+        const empty = document.createElement("div");
+        empty.className = "calendar-empty-state";
+        empty.textContent = "Your saved posts will appear here once you schedule them.";
+        calendar.appendChild(empty);
+      } else {
+        const list = document.createElement("div");
+        list.className = "calendar-post-list";
+        posts.filter((post) => post.status === "scheduled" || post.status === "draft")
+          .slice(0, 12).forEach((post) => {
+            const item = document.createElement("article");
+            item.className = "calendar-post-item";
+            const date = post.scheduled_at
+              ? new Date(post.scheduled_at).toLocaleString([], { weekday: "short", month: "short", day: "numeric", hour: "numeric", minute: "2-digit" })
+              : "Draft · no date set";
+            const title = document.createElement("strong");
+            title.textContent = post.title || "Untitled content";
+            const details = document.createElement("span");
+            details.textContent = date + " · " + (post.content_type || "post") + " · " + post.status;
+            item.append(title, details);
+            list.appendChild(item);
+          });
+        if (!list.childElementCount) {
+          const empty = document.createElement("div");
+          empty.className = "calendar-empty-state";
+          empty.textContent = "No upcoming posts. Create a post and choose a date to see it here.";
+          list.appendChild(empty);
+        }
+        calendar.appendChild(list);
+      }
+    }
+
     const rows = document.querySelector(".content-table");
     if (rows) {
       const header = rows.querySelector(".table-head");
       rows.innerHTML = "";
       if (header) rows.appendChild(header);
-      if (!data || data.length === 0) {
+      if (!posts.length) {
         const empty = document.createElement("div");
         empty.className = "content-row";
         empty.innerHTML = '<div class="content-name"><span><strong>No saved content yet</strong><small>Create your first post to see it here.</small></span></div>';
         rows.appendChild(empty);
       } else {
-        data.slice(0, 8).forEach((post) => {
+        posts.slice(0, 8).forEach((post) => {
           const date = post.scheduled_at ? new Date(post.scheduled_at).toLocaleString([], { dateStyle:"medium", timeStyle:"short" }) : "No date set";
           const statusClass = post.status === "published" ? "status-published" : post.status === "draft" ? "status-draft" : "status-scheduled";
           const row = document.createElement("div");
@@ -144,6 +194,12 @@
           rows.appendChild(row);
         });
       }
+    }
+    const ring = document.querySelector(".health-ring");
+    if (ring) {
+      const total = scheduledPosts.length + drafts.length;
+      const pct = total ? Math.round(scheduledPosts.length / total * 100) : 0;
+      ring.style.background = "conic-gradient(var(--purple) 0 " + pct + "%, #eeecf4 " + pct + "% 100%)";
     }
   }
 
