@@ -1,6 +1,15 @@
 document.addEventListener('DOMContentLoaded', () => {
   if (window.lucide) window.lucide.createIcons();
 
+  // Keep date inputs usable instead of leaving the original 2024 demo dates.
+  const today = new Date();
+  const localDate = new Date(today.getTime() - today.getTimezoneOffset() * 60000).toISOString().slice(0, 10);
+  ["#schedule-date", "#bulk-start-date"].forEach((selector) => {
+    const input = document.querySelector(selector);
+    if (input && (!input.value || input.value < localDate)) input.value = localDate;
+    if (input) input.min = localDate;
+  });
+
   const modal = document.querySelector('#modal-backdrop');
   const openButtons = [document.querySelector('#create-content'), document.querySelector('#calendar-add')];
   const closeButtons = [document.querySelector('#modal-close'), document.querySelector('#modal-cancel')];
@@ -106,7 +115,23 @@ document.addEventListener('DOMContentLoaded', () => {
       document.querySelectorAll('.nav-item').forEach((nav) => nav.classList.remove('active'));
       item.classList.add('active');
       const view = item.dataset.view;
-      if (view !== 'overview') showToast(`${item.querySelector('span:nth-child(2)')?.textContent || 'View'} is ready for your workspace`);
+      const targets = {
+        overview: '.welcome-row',
+        calendar: '.calendar-panel',
+        library: '.recent-panel',
+        analytics: '.best-time-panel',
+        inbox: '.queue-panel',
+        team: '.profile-row',
+        settings: '.profile-row'
+      };
+      const target = document.querySelector(targets[view] || '.welcome-row');
+      if (target) {
+        target.scrollIntoView({ behavior: 'smooth', block: 'start' });
+        const heading = target.querySelector('h1, h2, strong');
+        const crumb = document.querySelector('.breadcrumbs strong');
+        if (crumb) crumb.textContent = item.querySelector('span:nth-child(2)')?.textContent || 'Overview';
+        showToast((item.querySelector('span:nth-child(2)')?.textContent || 'View') + ' opened');
+      }
     });
   });
 
@@ -114,7 +139,15 @@ document.addEventListener('DOMContentLoaded', () => {
     button.addEventListener('click', () => {
       document.querySelectorAll('[data-calendar-view]').forEach((option) => option.classList.remove('active'));
       button.classList.add('active');
-      if (button.dataset.calendarView === 'month') showToast('Month view is coming together — week view stays focused for now');
+      const calendar = document.querySelector('#week-calendar');
+      if (!calendar) return;
+      if (button.dataset.calendarView === 'month') {
+        calendar.classList.add('month-view-requested');
+        showToast('Month view selected. Saved posts are listed in the Content Library.');
+      } else {
+        calendar.classList.remove('month-view-requested');
+        showToast('Week view selected');
+      }
     });
   });
 
@@ -126,8 +159,14 @@ document.addEventListener('DOMContentLoaded', () => {
     if (action === 'invite') showToast('Invite link copied to your clipboard');
   }));
 
-  document.querySelector('#view-calendar')?.addEventListener('click', () => showToast('Full calendar view opened'));
-  document.querySelector('#open-library')?.addEventListener('click', () => showToast('Content library opened'));
+  document.querySelector('#view-calendar')?.addEventListener('click', () => {
+    document.querySelector('.calendar-panel')?.scrollIntoView({ behavior: 'smooth', block: 'start' });
+    showToast('Calendar brought into view');
+  });
+  document.querySelector('#open-library')?.addEventListener('click', () => {
+    document.querySelector('.recent-panel')?.scrollIntoView({ behavior: 'smooth', block: 'start' });
+    showToast('Content Library brought into view');
+  });
   document.querySelectorAll('.empty-day-button').forEach((button) => button.addEventListener('click', openModal));
   document.querySelector('.notification-button')?.addEventListener('click', () => showToast('You have 7 new inbox notifications'));
   document.querySelector('.pro-button')?.addEventListener('click', () => showToast('Pro features are ready when you are'));
