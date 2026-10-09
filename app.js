@@ -7,7 +7,6 @@ document.addEventListener('DOMContentLoaded', () => {
   ["#schedule-date", "#bulk-start-date"].forEach((selector) => {
     const input = document.querySelector(selector);
     if (input && (!input.value || input.value < localDate)) input.value = localDate;
-    if (input) input.min = localDate;
   });
 
   const modal = document.querySelector('#modal-backdrop');
