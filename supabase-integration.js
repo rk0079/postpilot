@@ -158,6 +158,10 @@
             const details = document.createElement("span");
             details.textContent = date + " · " + (post.content_type || "post") + " · " + post.status;
             item.append(title, details);
+            const actions = document.createElement("div");
+            actions.className = "post-actions calendar-post-actions";
+            actions.innerHTML = `<button class="row-menu" type="button" data-copy-caption="${escapeHtml(post.id)}">Copy caption</button>${post.media_url ? `<button class="row-menu" type="button" data-save-media="${escapeHtml(post.id)}">Open media</button>` : ""}<button class="row-menu" type="button" data-open-instagram="${escapeHtml(post.id)}">Open Instagram</button>`;
+            item.appendChild(actions);
             list.appendChild(item);
           });
         if (!list.childElementCount) {
@@ -190,7 +194,7 @@
             <div class="content-name"><div class="table-thumb thumb-portrait"></div><span><strong>${escapeHtml(post.title)}</strong><small>${escapeHtml((post.caption || "").slice(0, 70) || "No caption added")}</small></span></div>
             <span class="type-tag">${escapeHtml(post.content_type)}</span>
             <span class="status-tag ${statusClass}"><i></i> ${escapeHtml(post.status)}</span>
-            <span class="row-date">${escapeHtml(date)}</span><div class="post-actions"><button class="row-menu" type="button" data-copy-caption="${escapeHtml(post.id)}" aria-label="Copy caption">Copy caption</button><button class="row-menu" type="button" data-open-instagram="${escapeHtml(post.id)}">Open Instagram</button>${post.scheduled_at && post.status !== "published" ? `<button class="row-menu" type="button" data-remind-post="${escapeHtml(post.id)}" data-remind-at="${escapeHtml(post.scheduled_at)}">Remind me</button>` : ""}</div>`;
+            <span class="row-date">${escapeHtml(date)}</span><div class="post-actions"><button class="row-menu" type="button" data-copy-caption="${escapeHtml(post.id)}" aria-label="Copy caption">Copy caption</button>${post.media_url ? `<button class="row-menu" type="button" data-save-media="${escapeHtml(post.id)}">Open media</button>` : ""}<button class="row-menu" type="button" data-open-instagram="${escapeHtml(post.id)}">Open Instagram</button>${post.scheduled_at && post.status !== "published" ? `<button class="row-menu" type="button" data-remind-post="${escapeHtml(post.id)}" data-remind-at="${escapeHtml(post.scheduled_at)}">Remind me</button>` : ""}</div>`;
           rows.appendChild(row);
         });
       }
@@ -393,18 +397,22 @@
       const copyButton = event.target.closest("[data-copy-caption]");
       const openButton = event.target.closest("[data-open-instagram]");
       const remindButton = event.target.closest("[data-remind-post]");
-      if (!copyButton && !openButton && !remindButton) return;
+      const mediaButton = event.target.closest("[data-save-media]");
+      if (!copyButton && !openButton && !remindButton && !mediaButton) return;
+      // Open a tab immediately inside the user gesture so mobile browsers do not block the later signed-media URL.
+      const mediaTab = mediaButton ? window.open("about:blank", "_blank") : null;
       if (!currentUser) {
         toast("Sign in to manage your saved posts.");
         return;
       }
-      const postId = (copyButton || openButton || remindButton).dataset.copyCaption ||
-        (copyButton || openButton || remindButton).dataset.openInstagram ||
-        (copyButton || openButton || remindButton).dataset.remindPost;
+      const actionButton = copyButton || openButton || remindButton || mediaButton;
+      const postId = actionButton.dataset.copyCaption || actionButton.dataset.openInstagram ||
+        actionButton.dataset.remindPost || actionButton.dataset.saveMedia;
       const { data: post, error } = await client.from("posts")
-        .select("id,title,caption,hashtags,scheduled_at")
+        .select("id,title,caption,hashtags,scheduled_at,media_url,original_filename")
         .eq("id", postId).eq("user_id", currentUser.id).maybeSingle();
       if (error || !post) {
+        if (mediaTab) mediaTab.close();
         toast("Could not load that post. Please refresh and try again.");
         return;
       }
@@ -418,9 +426,26 @@
           toast("Clipboard access was blocked. Open the post and copy its caption manually.");
         }
       }
+      if (mediaButton) {
+        if (!post.media_url) {
+          if (mediaTab) mediaTab.close();
+          toast("This post has no attached media file.");
+        } else {
+          const { data: signed, error: mediaError } = await client.storage.from("post-media").createSignedUrl(post.media_url, 300, { download: post.original_filename || true });
+          if (mediaError || !signed?.signedUrl) {
+            if (mediaTab) mediaTab.close();
+            toast("Could not open media: " + (mediaError?.message || "signed link unavailable"));
+          } else if (mediaTab) {
+            mediaTab.location.href = signed.signedUrl;
+            toast("Media opened in a new tab. On iPhone, use Share to save it to Photos or Files.");
+          } else {
+            toast("Your browser blocked the media tab. Allow pop-ups for PostPilot and try again.");
+          }
+        }
+      }
       if (openButton) {
         window.open("https://www.instagram.com/", "_blank", "noopener,noreferrer");
-        toast("Instagram opened. Choose your media and paste the copied caption to publish manually.");
+        toast("Instagram opened. Open the saved media, then paste your caption to publish manually.");
       }
       if (remindButton) {
         if ("Notification" in window && Notification.permission === "default") {
