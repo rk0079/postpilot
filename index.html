@@ -28,13 +28,13 @@
         <nav class="main-nav" aria-label="Main navigation">
           <button class="nav-item active" type="button" data-view="overview"><i data-lucide="layout-dashboard"></i><span>Overview</span><span class="nav-pill">New</span></button>
           <button class="nav-item" type="button" data-view="calendar"><i data-lucide="calendar-days"></i><span>Calendar</span></button>
-          <button class="nav-item" type="button" data-view="library"><i data-lucide="folder-kanban"></i><span>Content library</span><span class="nav-count">64</span></button>
+          <button class="nav-item" type="button" data-view="library"><i data-lucide="folder-kanban"></i><span>Content library</span><span class="nav-count" id="library-count">0</span></button>
           <button class="nav-item" type="button" data-view="analytics"><i data-lucide="chart-no-axes-combined"></i><span>Analytics</span></button>
         </nav>
 
         <div class="sidebar-label second-label">Manage</div>
         <nav class="main-nav" aria-label="Management navigation">
-          <button class="nav-item" type="button" data-view="inbox"><i data-lucide="inbox"></i><span>Social inbox</span><span class="nav-count coral-count">7</span></button>
+          <button class="nav-item" type="button" data-view="inbox"><i data-lucide="inbox"></i><span>Social inbox</span><span class="nav-count coral-count" hidden></span></button>
           <button class="nav-item" type="button" data-view="team"><i data-lucide="users"></i><span>Team &amp; roles</span></button>
           <button class="nav-item" type="button" data-view="settings"><i data-lucide="settings-2"></i><span>Settings</span></button>
         </nav>
@@ -81,17 +81,17 @@
           <section class="metric-grid" aria-label="Workspace metrics">
             <article class="metric-card accent-lilac">
               <div class="metric-top"><span>Scheduled</span><span class="metric-icon"><i data-lucide="send"></i></span></div>
-              <div class="metric-value-row"><strong id="metric-scheduled">0</strong><span class="trend positive"><i data-lucide="trending-up"></i> 12.5%</span></div>
+              <div class="metric-value-row"><strong id="metric-scheduled">0</strong><span class="metric-label">saved</span></div>
               <div class="metric-footer"><span>saved posts</span><div class="mini-bars lilac-bars"><i></i><i></i><i></i><i></i><i></i><i></i><i></i></div></div>
             </article>
             <article class="metric-card accent-peach">
               <div class="metric-top"><span>Published</span><span class="metric-icon"><i data-lucide="check-check"></i></span></div>
-              <div class="metric-value-row"><strong id="metric-published">0</strong><span class="trend positive"><i data-lucide="trending-up"></i> 8.4%</span></div>
+              <div class="metric-value-row"><strong id="metric-published">0</strong><span class="metric-label">total</span></div>
               <div class="metric-footer"><span>published posts</span><div class="mini-bars peach-bars"><i></i><i></i><i></i><i></i><i></i><i></i><i></i></div></div>
             </article>
             <article class="metric-card accent-mint">
               <div class="metric-top"><span>Engagement rate</span><span class="metric-icon"><i data-lucide="heart"></i></span></div>
-              <div class="metric-value-row"><strong>—</strong><span class="trend positive"><i data-lucide="trending-up"></i> 2.1%</span></div>
+              <div class="metric-value-row"><strong>—</strong><span class="metric-label">unavailable</span></div>
               <div class="metric-footer"><span>No analytics connected</span><div class="mini-bars mint-bars"><i></i><i></i><i></i><i></i><i></i><i></i><i></i></div></div>
             </article>
             <article class="metric-card accent-blue">
@@ -149,7 +149,7 @@
           <div class="bulk-panel">
             <div class="bulk-panel-header"><div><strong>Build a batch</strong><span>Upload a mixed set of posts, videos, and reels.</span></div><span class="batch-limit">50 max</span></div>
             <div class="bulk-drop-zone" id="bulk-drop-zone"><i data-lucide="layers-3"></i><div><strong>Drop multiple media files here</strong><span>JPG, PNG, MP4, MOV · up to 2GB each</span></div><input type="file" id="bulk-file-input" hidden accept="image/*,video/*" multiple /></div>
-            <div class="batch-preview"><div class="batch-file"><span class="batch-file-icon thumb-coffee"></span><span><strong>3 morning rituals</strong><small>Carousel · 4 slides</small></span><i data-lucide="check-circle-2"></i></div><div class="batch-file"><span class="batch-file-icon reel-preview"><i data-lucide="play"></i></span><span><strong>Studio reset</strong><small>Reel · 00:24</small></span><i data-lucide="check-circle-2"></i></div><div class="batch-file"><span class="batch-file-icon thumb-flowers"></span><span><strong>Little things</strong><small>Photo · 1 image</small></span><i data-lucide="check-circle-2"></i></div><div class="batch-count">+ 5 more items ready to schedule</div></div>
+            <div class="batch-preview" id="batch-preview" hidden></div>
             <div class="form-two-col"><div><label class="form-label" for="bulk-start-date">Start date</label><div class="input-with-icon"><i data-lucide="calendar-days"></i><input id="bulk-start-date" type="date" value="2024-10-17" /></div></div><div><label class="form-label" for="bulk-window">Posting window</label><div class="input-with-icon"><i data-lucide="clock-3"></i><input id="bulk-window" type="time" value="19:00" /></div></div></div>
             <div class="bulk-note"><i data-lucide="sparkles"></i><span>Posts will be scheduled one per day starting on your selected date.</span></div>
           </div>
