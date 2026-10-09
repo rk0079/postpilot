@@ -276,6 +276,8 @@
     if (profileWriteError) { toast("Could not save your profile: " + profileWriteError.message); return; }
     const backdrop = document.querySelector("#auth-backdrop");
     if (backdrop) backdrop.style.display = "none";
+    // A prior guest render may have inserted this banner; remove it as soon as auth is restored.
+    document.querySelector("#guest-preview-note")?.remove();
     const profileRow = document.querySelector(".profile-row");
     if (profileRow && !document.querySelector("#auth-signout")) {
       const signout = document.createElement("button");
