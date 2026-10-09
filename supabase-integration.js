@@ -316,6 +316,7 @@
       return;
     }
     const posts = data || [];
+    window.dispatchEvent(new CustomEvent("postpilot:posts-updated", { detail: { posts } }));
     const scheduledPosts = posts.filter((post) => post.status === "scheduled");
     const drafts = posts.filter((post) => post.status === "draft");
     const published = posts.filter((post) => post.status === "published");
