@@ -60,27 +60,7 @@ document.addEventListener('DOMContentLoaded', () => {
     button.addEventListener('click', () => setMode(button.dataset.mode));
   });
 
-  form.addEventListener('submit', (event) => {
-    event.preventDefault();
-    if (form.classList.contains('bulk-active')) {
-      const batchSize = document.querySelectorAll('.batch-file').length + 5;
-      const count = document.querySelector('#scheduled-count');
-      count.textContent = String(Number(count.textContent) + batchSize);
-      closeModal();
-      form.reset();
-      setMode('single');
-      showToast(`${batchSize} mixed posts, videos, and reels added to your queue`);
-      return;
-    }
-    const title = document.querySelector('#content-title').value.trim() || 'Untitled content';
-    const contentType = document.querySelector('.type-choice.active')?.dataset.type || 'Carousel';
-    const count = document.querySelector('#scheduled-count');
-    count.textContent = String(Number(count.textContent) + 1);
-    closeModal();
-    form.reset();
-    document.querySelectorAll('.type-choice').forEach((choice, index) => choice.classList.toggle('active', index === 0));
-    showToast(`${title} added as a ${contentType.toLowerCase()} and scheduled`);
-  });
+  // Saving is handled only by supabase-integration.js. Never show a fake success state.
 
   const dropZone = document.querySelector('#drop-zone');
   const fileInput = document.querySelector('#file-input');
@@ -118,13 +98,13 @@ document.addEventListener('DOMContentLoaded', () => {
       const targets = {
         overview: '.welcome-row',
         calendar: '.calendar-panel',
-        library: '.recent-panel',
-        analytics: '.best-time-panel',
-        inbox: '.queue-panel',
-        team: '.profile-row',
-        settings: '.profile-row'
+        library: '.recent-panel'
       };
-      const target = document.querySelector(targets[view] || '.welcome-row');
+      if (!targets[view]) {
+        showToast(({ analytics: 'Instagram analytics are not connected yet.', inbox: 'A social inbox is not connected yet.', team: 'Team collaboration is not available yet.', settings: 'Account settings are not available yet.' })[view] || 'This section is not available yet.');
+        return;
+      }
+      const target = document.querySelector(targets[view]);
       if (target) {
         target.scrollIntoView({ behavior: 'smooth', block: 'start' });
         const heading = target.querySelector('h1, h2, strong');
@@ -143,7 +123,7 @@ document.addEventListener('DOMContentLoaded', () => {
       if (!calendar) return;
       if (button.dataset.calendarView === 'month') {
         calendar.classList.add('month-view-requested');
-        showToast('Month view selected. Saved posts are listed in the Content Library.');
+        showToast('Month grid is not available yet. Your saved posts remain in the list below.');
       } else {
         calendar.classList.remove('month-view-requested');
         showToast('Week view selected');
@@ -156,7 +136,7 @@ document.addEventListener('DOMContentLoaded', () => {
     if (action === 'upload') openModal();
     if (action === 'bulk') openModal('bulk');
     if (action === 'caption') { openModal(); window.setTimeout(() => document.querySelector('#content-caption')?.focus(), 100); }
-    if (action === 'invite') showToast('Invite link copied to your clipboard');
+    if (action === 'invite') showToast('Team invitations are not available yet.');
   }));
 
   document.querySelector('#view-calendar')?.addEventListener('click', () => {
@@ -168,7 +148,7 @@ document.addEventListener('DOMContentLoaded', () => {
     showToast('Content Library brought into view');
   });
   document.querySelectorAll('.empty-day-button').forEach((button) => button.addEventListener('click', openModal));
-  document.querySelector('.notification-button')?.addEventListener('click', () => showToast('You have 7 new inbox notifications'));
-  document.querySelector('.pro-button')?.addEventListener('click', () => showToast('Pro features are ready when you are'));
-  document.querySelector('.workspace-switcher')?.addEventListener('click', () => showToast('Workspace switcher opened'));
+  document.querySelector('.notification-button')?.addEventListener('click', () => showToast('Notifications are currently limited to reminders you set for individual posts.'));
+  document.querySelector('.pro-button')?.addEventListener('click', () => showToast('Paid plans are not configured in this version.'));
+  document.querySelector('.workspace-switcher')?.addEventListener('click', () => showToast('This account currently has one workspace.'));
 });
