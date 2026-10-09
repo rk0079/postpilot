@@ -169,18 +169,32 @@
     const file = document.querySelector("#file-input")?.files?.[0] || null;
     const scheduledAt = getScheduledDate("#schedule-date", "#schedule-time", 60);
     const status = new Date(scheduledAt).getTime() > Date.now() ? "scheduled" : "draft";
+    let mediaPath = null;
+    if (file) {
+      const safeName = file.name.normalize("NFKD").replace(/[^a-zA-Z0-9._-]+/g, "-").slice(-120) || "upload";
+      mediaPath = currentUser.id + "/" + crypto.randomUUID() + "-" + safeName;
+      const { error: uploadError } = await client.storage.from("post-media").upload(mediaPath, file, {
+        cacheControl: "3600", upsert: false, contentType: file.type || "application/octet-stream"
+      });
+      if (uploadError) {
+        toast("Media upload failed: " + uploadError.message);
+        return;
+      }
+    }
     const payload = {
       user_id: currentUser.id,
       title,
       content_type: contentType.toLowerCase(),
       caption,
-      hashtags: (caption.match(/#[\p{L}\p{N}_]+/gu) || []),
+      hashtags: (caption.match(/#[\\p{L}\\p{N}_]+/gu) || []),
+      media_url: mediaPath,
       original_filename: file?.name || null,
       status,
       scheduled_at: scheduledAt
     };
     const { error } = await client.from("posts").insert(payload);
     if (error) {
+      if (mediaPath) await client.storage.from("post-media").remove([mediaPath]);
       toast("Couldn't save post: " + error.message);
       return;
     }
@@ -210,23 +224,39 @@
     const start = document.querySelector("#bulk-start-date")?.value || new Date().toISOString().slice(0, 10);
     const time = document.querySelector("#bulk-window")?.value || "19:00";
     const batchId = crypto.randomUUID();
-    const rows = files.map((file, index) => {
+    const uploadedPaths = [];
+    const rows = [];
+    for (let index = 0; index < files.length; index++) {
+      const file = files[index];
+      const safeName = file.name.normalize("NFKD").replace(/[^a-zA-Z0-9._-]+/g, "-").slice(-120) || "upload";
+      const path = currentUser.id + "/" + crypto.randomUUID() + "-" + safeName;
+      const { error: uploadError } = await client.storage.from("post-media").upload(path, file, {
+        cacheControl: "3600", upsert: false, contentType: file.type || "application/octet-stream"
+      });
+      if (uploadError) {
+        if (uploadedPaths.length) await client.storage.from("post-media").remove(uploadedPaths);
+        toast("Bulk media upload failed for " + file.name + ": " + uploadError.message);
+        return;
+      }
+      uploadedPaths.push(path);
       const scheduled = new Date(start + "T" + time + ":00");
       scheduled.setDate(scheduled.getDate() + index);
       const isVideo = file.type.startsWith("video/");
-      return {
+      rows.push({
         user_id: currentUser.id,
-        title: file.name.replace(/\.[^.]+$/, "") || "Untitled content",
+        title: file.name.replace(/\\.[^.]+$/, "") || "Untitled content",
         content_type: isVideo ? "reel" : "photo",
         caption: "",
+        media_url: path,
         original_filename: file.name,
         status: "scheduled",
         scheduled_at: scheduled.toISOString(),
         batch_id: batchId
-      };
-    });
+      });
+    }
     const { error } = await client.from("posts").insert(rows);
     if (error) {
+      await client.storage.from("post-media").remove(uploadedPaths);
       toast("Bulk save failed: " + error.message);
       return;
     }
@@ -234,7 +264,7 @@
     document.body.style.overflow = "";
     document.querySelector("#schedule-form").reset();
     document.querySelector("#schedule-form").classList.remove("bulk-active");
-    toast(files.length + " posts saved to your calendar. Media storage is the next step.");
+    toast(files.length + " posts and media files saved to your calendar.");
     await loadPosts();
   }
 
