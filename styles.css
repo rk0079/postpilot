@@ -313,3 +313,11 @@ button:focus-visible, input:focus-visible, textarea:focus-visible { outline: 3px
   .calendar-post-actions .row-menu { white-space: normal; text-align: center; }
   .topbar { position: sticky; }
 }
+
+/* Authentication recovery controls */
+.auth-forgot-row { display:flex; justify-content:flex-end; margin-top:10px; }
+.auth-forgot-row button { border:0; background:transparent; padding:4px 0; color:#3563e9; font:600 12px "DM Sans",sans-serif; cursor:pointer; }
+.auth-forgot-row button:hover { color:#234fc7; text-decoration:underline; }
+.auth-forgot-row button:disabled { opacity:.6; cursor:wait; }
+.auth-switch button:focus-visible, .auth-forgot-row button:focus-visible { outline:2px solid rgba(53,99,233,.35); outline-offset:3px; border-radius:4px; }
+.auth-error[style*="eef7f1"] { background:#eef7f1; color:#216844; }
