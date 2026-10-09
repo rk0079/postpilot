@@ -607,8 +607,28 @@
     panel.id = "instagram-connection-panel";
     panel.className = "panel";
     panel.style.cssText = "margin:18px 0;padding:16px 20px;display:flex;align-items:center;justify-content:space-between;gap:16px;flex-wrap:wrap";
-    panel.innerHTML = '<div><strong>Instagram publishing · Approval required</strong><p id="instagram-connection-status" style="margin:5px 0 0;color:var(--muted,#777)">Checking connection…</p><small>Posts are never auto-published without your approval.</small></div><button class="primary-button" id="instagram-connect-button" type="button">Connect Instagram Business</button>';
+    panel.innerHTML = '<div><strong>Instagram publishing · Approval required</strong><p id="instagram-connection-status" style="margin:5px 0 0;color:var(--muted,#777)">Checking connection…</p><small>Posts are never auto-published without your approval.</small></div><div style="display:flex;gap:8px;flex-wrap:wrap"><button class="primary-button" id="instagram-connect-button" type="button">Connect Instagram Business</button><button class="secondary-button" id="instagram-disconnect-button" type="button" hidden>Disconnect</button></div>';
     welcome.insertAdjacentElement("afterend", panel);
+    panel.querySelector("#instagram-disconnect-button").addEventListener("click", async (event) => {
+      if (!window.confirm("Disconnect this Instagram account from your PostPilot workspace? Your saved posts will remain.")) return;
+      const button = event.currentTarget;
+      button.disabled = true;
+      try {
+        const { data, error } = await client.functions.invoke("instagram-publishing", { body: { action: "disconnect" } });
+        if (error) throw error;
+        if (data?.error) throw new Error(data.error);
+        const status = document.querySelector("#instagram-connection-status");
+        if (status) status.textContent = "Instagram disconnected. Your saved posts are unchanged.";
+        const connect = document.querySelector("#instagram-connect-button");
+        if (connect) connect.textContent = "Connect Instagram Business";
+        button.hidden = true;
+        toast("Instagram disconnected securely.");
+      } catch (error) {
+        toast("Could not disconnect Instagram: " + (error.message || "Please try again."));
+      } finally {
+        button.disabled = false;
+      }
+    });
     panel.querySelector("#instagram-connect-button").addEventListener("click", async (event) => {
       const button = event.currentTarget;
       button.disabled = true;
@@ -645,10 +665,14 @@
       const { data, error } = await client.functions.invoke("instagram-publishing", { body: { action: "status" } });
       if (error || data?.error) throw error || new Error(data.error);
       if (data?.connected) {
-        status.textContent = "Connected as @" + (data.username || "Instagram Business") + ". Review each post before publishing.";
+        status.textContent = "Connected as @" + (data.username || "Instagram Business") + ". Review each post before publishing." + (data.warning ? " Token needs attention: " + data.warning : "");
         if (button) button.textContent = "Reconnect Instagram";
+        const disconnect = document.querySelector("#instagram-disconnect-button");
+        if (disconnect) disconnect.hidden = false;
       } else {
-        status.textContent = "Not connected yet. Connect a professional Instagram Business account linked to a Facebook Page.";
+        status.textContent = "Not connected yet. Connect your eligible Instagram professional account.";
+        const disconnect = document.querySelector("#instagram-disconnect-button");
+        if (disconnect) disconnect.hidden = true;
       }
     } catch (error) {
       const detail = error?.message || error?.context?.message || "Unknown connection error";
