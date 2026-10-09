@@ -247,14 +247,14 @@
       signout.id = "auth-signout";
       signout.type = "button";
       signout.textContent = "Sign out";
-      signout.style.cssText = "margin-left:auto;padding:7px 10px;border-radius:9px;background:#f1effa;color:#5743b1;font-weight:600;";
+      signout.style.cssText = "display:block;width:calc(100% - 24px);margin:8px 12px;padding:9px 12px;border-radius:9px;background:#f1effa;color:#5743b1;font-weight:600;text-align:left;";
       signout.addEventListener("click", async () => {
         await client.auth.signOut();
         currentUser = null;
         toast("Signed out. This session is now closed.");
         window.location.reload();
       });
-      profileRow.appendChild(signout);
+      profileRow.insertAdjacentElement("afterend", signout);
     }
     const profile = document.querySelector(".profile-copy");
     if (profile) {
