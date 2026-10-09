@@ -5,6 +5,7 @@
 
   let currentUser = null;
   let isSignup = false;
+  let isPasswordRecovery = false;
   const reminderTimers = new Map();
   const escapeHtml = (value) => String(value ?? "").replace(/[&<>"']/g, (c) => ({
     "&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"
@@ -90,7 +91,7 @@
       const email = document.querySelector("#auth-email").value.trim();
       const password = document.querySelector("#auth-password").value;
       const submit = document.querySelector("#auth-submit");
-      if (new URLSearchParams(window.location.search).get("reset_password") === "1") {
+      if (isPasswordRecovery || new URLSearchParams(window.location.search).get("reset_password") === "1" || new URLSearchParams(window.location.hash.replace(/^#/, "")).get("type") === "recovery") {
         submit.disabled = true;
         submit.textContent = "Updating password…";
         showAuthError("");
@@ -98,6 +99,11 @@
           const { error } = await client.auth.updateUser({ password });
           if (error) throw error;
           window.history.replaceState({}, "", window.location.pathname);
+          isPasswordRecovery = false;
+          document.querySelector("#auth-email").hidden = false;
+          document.querySelector('label[for="auth-email"]').hidden = false;
+          document.querySelector(".auth-switch").hidden = false;
+          document.querySelector("#auth-forgot-row").hidden = false;
           document.querySelector("#auth-title").textContent = "Password updated";
           document.querySelector("#auth-description").textContent = "Your password has been changed. You can now continue to PostPilot.";
           document.querySelector("#auth-password").value = "";
@@ -146,6 +152,26 @@
         submit.textContent = isSignup ? "Create account" : "Sign in";
       }
     });
+  }
+
+  function activatePasswordRecovery() {
+    isPasswordRecovery = true;
+    buildAuth();
+    const backdrop = document.querySelector("#auth-backdrop");
+    if (backdrop) backdrop.style.display = "grid";
+    document.querySelector("#auth-title").textContent = "Set a new password";
+    document.querySelector("#auth-description").textContent = "Choose a new password for your PostPilot account.";
+    document.querySelector("#auth-email").hidden = true;
+    document.querySelector('label[for="auth-email"]').hidden = true;
+    document.querySelector("#auth-forgot-row").hidden = true;
+    document.querySelector(".auth-switch").hidden = true;
+    const password = document.querySelector("#auth-password");
+    password.autocomplete = "new-password";
+    password.minLength = 8;
+    password.placeholder = "At least 8 characters";
+    password.value = "";
+    document.querySelector("#auth-submit").textContent = "Save new password";
+    showAuthError("");
   }
 
   function showAuthError(message) {
@@ -663,7 +689,11 @@
     } else {
       document.querySelector("#auth-backdrop").style.display = "grid";
     }
-    client.auth.onAuthStateChange((_event, session) => {
+    client.auth.onAuthStateChange((event, session) => {
+      if (event === "PASSWORD_RECOVERY" || new URLSearchParams(window.location.hash.replace(/^#/, "")).get("type") === "recovery" || new URLSearchParams(window.location.search).get("reset_password") === "1") {
+        activatePasswordRecovery();
+        return;
+      }
       currentUser = session?.user || null;
       if (currentUser) finishSignIn();
       else {
