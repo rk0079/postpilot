@@ -20,7 +20,7 @@
 
         <button class="workspace-switcher" type="button">
           <span class="workspace-avatar">LS</span>
-          <span class="workspace-meta"><strong>Lunar Studio</strong><small>Creator workspace</small></span>
+          <span class="workspace-meta"><strong>My workspace</strong><small>Your content workspace</small></span>
           <i data-lucide="chevrons-up-down"></i>
         </button>
 
@@ -47,8 +47,8 @@
           <button type="button" class="pro-button">Explore Pro <i data-lucide="arrow-up-right"></i></button>
         </div>
         <button type="button" class="profile-row">
-          <span class="avatar avatar-maya">MC</span>
-          <span class="profile-copy"><strong>Maya Chen</strong><small>Admin</small></span>
+          <span class="avatar avatar-maya">PP</span>
+          <span class="profile-copy"><strong>My account</strong><small>Admin</small></span>
           <i data-lucide="more-horizontal"></i>
         </button>
       </aside>
@@ -57,18 +57,18 @@
         <header class="topbar">
           <div class="breadcrumbs"><span>Workspace</span><i data-lucide="chevron-right"></i><strong>Overview</strong></div>
           <div class="topbar-actions">
-            <div class="date-display"><i data-lucide="calendar"></i><span>Oct 14 — Oct 20, 2024</span></div>
+            <div class="date-display"><i data-lucide="calendar"></i><span>Your schedule</span></div>
             <button class="icon-button notification-button" type="button" aria-label="Notifications"><i data-lucide="bell"></i><span></span></button>
             <button class="outline-button invite-button" type="button"><i data-lucide="user-plus"></i> Invite</button>
-            <span class="avatar avatar-maya large-avatar">MC</span>
+            <span class="avatar avatar-maya large-avatar">PP</span>
           </div>
         </header>
 
         <div class="page-content">
           <section class="welcome-row">
             <div>
-              <div class="eyebrow"><span class="eyebrow-dot"></span> Monday, October 14, 2024</div>
-              <h1>Good morning, Maya <span class="wave">✦</span></h1>
+              <div class="eyebrow"><span class="eyebrow-dot"></span> YOUR WORKSPACE</div>
+              <h1>Plan your Instagram content <span class="wave">✦</span></h1>
               <p class="welcome-copy">You’re all caught up. Here’s what’s moving across your content engine.</p>
             </div>
             <div class="welcome-actions">
@@ -81,23 +81,23 @@
           <section class="metric-grid" aria-label="Workspace metrics">
             <article class="metric-card accent-lilac">
               <div class="metric-top"><span>Scheduled</span><span class="metric-icon"><i data-lucide="send"></i></span></div>
-              <div class="metric-value-row"><strong>28</strong><span class="trend positive"><i data-lucide="trending-up"></i> 12.5%</span></div>
-              <div class="metric-footer"><span>vs. last week</span><div class="mini-bars lilac-bars"><i></i><i></i><i></i><i></i><i></i><i></i><i></i></div></div>
+              <div class="metric-value-row"><strong id="metric-scheduled">0</strong><span class="trend positive"><i data-lucide="trending-up"></i> 12.5%</span></div>
+              <div class="metric-footer"><span>saved posts</span><div class="mini-bars lilac-bars"><i></i><i></i><i></i><i></i><i></i><i></i><i></i></div></div>
             </article>
             <article class="metric-card accent-peach">
               <div class="metric-top"><span>Published</span><span class="metric-icon"><i data-lucide="check-check"></i></span></div>
-              <div class="metric-value-row"><strong>142</strong><span class="trend positive"><i data-lucide="trending-up"></i> 8.4%</span></div>
-              <div class="metric-footer"><span>this month</span><div class="mini-bars peach-bars"><i></i><i></i><i></i><i></i><i></i><i></i><i></i></div></div>
+              <div class="metric-value-row"><strong id="metric-published">0</strong><span class="trend positive"><i data-lucide="trending-up"></i> 8.4%</span></div>
+              <div class="metric-footer"><span>published posts</span><div class="mini-bars peach-bars"><i></i><i></i><i></i><i></i><i></i><i></i><i></i></div></div>
             </article>
             <article class="metric-card accent-mint">
               <div class="metric-top"><span>Engagement rate</span><span class="metric-icon"><i data-lucide="heart"></i></span></div>
-              <div class="metric-value-row"><strong>8.6%</strong><span class="trend positive"><i data-lucide="trending-up"></i> 2.1%</span></div>
-              <div class="metric-footer"><span>above your average</span><div class="mini-bars mint-bars"><i></i><i></i><i></i><i></i><i></i><i></i><i></i></div></div>
+              <div class="metric-value-row"><strong>—</strong><span class="trend positive"><i data-lucide="trending-up"></i> 2.1%</span></div>
+              <div class="metric-footer"><span>No analytics connected</span><div class="mini-bars mint-bars"><i></i><i></i><i></i><i></i><i></i><i></i><i></i></div></div>
             </article>
             <article class="metric-card accent-blue">
               <div class="metric-top"><span>Media library</span><span class="metric-icon"><i data-lucide="image"></i></span></div>
-              <div class="metric-value-row"><strong>64</strong><span class="metric-label">assets</span></div>
-              <div class="metric-footer"><span>12 added this week</span><div class="storage-line"><span style="width: 72%"></span></div></div>
+              <div class="metric-value-row"><strong id="metric-media">0</strong><span class="metric-label">assets</span></div>
+              <div class="metric-footer"><span>uploaded files</span><div class="storage-line"><span style="width: 72%"></span></div></div>
             </article>
           </section>
 
@@ -107,27 +107,16 @@
                 <div><div class="section-kicker">CONTENT PLAN</div><h2>This week <span class="heading-count">7 days</span></h2></div>
                 <div class="heading-actions"><div class="view-toggle"><button class="toggle-option active" type="button" data-calendar-view="week">Week</button><button class="toggle-option" type="button" data-calendar-view="month">Month</button></div><button class="small-icon-button" id="calendar-add" type="button" aria-label="Add to calendar"><i data-lucide="plus"></i></button></div>
               </div>
-              <div class="calendar-meta"><span><i class="status-dot scheduled-dot"></i> Scheduled <b id="scheduled-count">28</b></span><span><i class="status-dot draft-dot"></i> Drafts <b>6</b></span><span class="calendar-timezone"><i data-lucide="globe-2"></i> GMT+5:30</span></div>
-              <div class="week-calendar" id="week-calendar">
-                <div class="time-header"></div>
-                <div class="day-header"><span>MON</span><b>14</b></div><div class="day-header"><span>TUE</span><b>15</b></div><div class="day-header"><span>WED</span><b>16</b></div><div class="day-header today"><span>THU</span><b>17</b></div><div class="day-header"><span>FRI</span><b>18</b></div><div class="day-header"><span>SAT</span><b>19</b></div><div class="day-header"><span>SUN</span><b>20</b></div>
-                <div class="time-column"><span>9 AM</span><span>12 PM</span><span>3 PM</span><span>6 PM</span></div>
-                <div class="day-track"><span class="track-line"></span><span class="track-line"></span><span class="track-line"></span><div class="calendar-event event-purple" style="--event-top: 40px"><div class="event-thumb thumb-coffee"></div><div><strong>Monday mood ☕</strong><small>9:30 AM · Carousel</small></div><i data-lucide="more-horizontal"></i></div><div class="calendar-event event-lilac" style="--event-top: 156px"><span class="event-reel"><i data-lucide="play"></i></span><div><strong>Behind the scenes</strong><small>2:00 PM · Reel</small></div></div></div>
-                <div class="day-track"><span class="track-line"></span><span class="track-line"></span><span class="track-line"></span><div class="calendar-event event-peach" style="--event-top: 102px"><div class="event-thumb thumb-portrait"></div><div><strong>Meet the maker</strong><small>12:30 PM · Photo</small></div></div></div>
-                <div class="day-track"><span class="track-line"></span><span class="track-line"></span><span class="track-line"></span><div class="calendar-event event-mint" style="--event-top: 48px"><div class="event-thumb thumb-green"></div><div><strong>3 ways to reset</strong><small>10:00 AM · Carousel</small></div></div><div class="calendar-event event-blue" style="--event-top: 202px"><span class="event-reel"><i data-lucide="play"></i></span><div><strong>Studio tour</strong><small>3:30 PM · Video</small></div></div></div>
-                <div class="day-track current-day"><span class="track-line"></span><span class="track-line"></span><span class="track-line"></span><div class="calendar-event event-coral" style="--event-top: 28px"><div class="event-thumb thumb-flowers"></div><div><strong>Little things ✿</strong><small>9:00 AM · Photo</small></div></div><div class="calendar-event event-dashed" style="--event-top: 172px"><span class="event-reel draft-reel"><i data-lucide="file-edit"></i></span><div><strong>Design your day</strong><small>3:00 PM · Draft</small></div></div></div>
-                <div class="day-track"><span class="track-line"></span><span class="track-line"></span><span class="track-line"></span><div class="calendar-event event-yellow" style="--event-top: 78px"><div class="event-thumb thumb-yellow"></div><div><strong>Friday favorites</strong><small>11:30 AM · Carousel</small></div></div></div>
-                <div class="day-track"><span class="track-line"></span><span class="track-line"></span><span class="track-line"></span><div class="calendar-event event-purple" style="--event-top: 128px"><span class="event-reel"><i data-lucide="play"></i></span><div><strong>Weekend ritual</strong><small>1:00 PM · Reel</small></div></div></div>
-                <div class="day-track"><span class="track-line"></span><span class="track-line"></span><span class="track-line"></span><button class="empty-day-button" type="button"><i data-lucide="plus"></i> Add post</button></div>
-              </div>
+              <div class="calendar-meta"><span><i class="status-dot scheduled-dot"></i> Scheduled <b id="scheduled-count">0</b></span><span><i class="status-dot draft-dot"></i> Drafts <b id="draft-count">0</b></span><span class="calendar-timezone"><i data-lucide="globe-2"></i> GMT+5:30</span></div>
+              <div class="week-calendar" id="week-calendar"><div class="calendar-empty-state" id="calendar-empty-state">Your saved posts will appear here once you schedule them.</div></div>
               <div class="calendar-footer"><button class="text-button" id="view-calendar" type="button">Open full calendar <i data-lucide="arrow-up-right"></i></button><span>Last synced a few seconds ago <i data-lucide="refresh-cw"></i></span></div>
             </article>
 
             <div class="insights-column">
               <article class="panel queue-panel">
                 <div class="panel-heading"><div><div class="section-kicker">PUBLISHING</div><h2>Queue health</h2></div><button class="dots-button" type="button"><i data-lucide="more-horizontal"></i></button></div>
-                <div class="queue-health"><div class="health-ring"><div><strong>82%</strong><span>on track</span></div></div><div class="health-copy"><div><span class="legend-dot purple-legend"></span><strong>23</strong><small>scheduled</small></div><div><span class="legend-dot gray-legend"></span><strong>5</strong><small>need a date</small></div></div></div>
-                <div class="queue-message"><i data-lucide="sparkles"></i><p><strong>Nice rhythm!</strong> You have enough content queued for the next 9 days.</p></div>
+                <div class="queue-health"><div class="health-ring"><div><strong id="queue-total">0</strong><span>on track</span></div></div><div class="health-copy"><div><span class="legend-dot purple-legend"></span><strong id="queue-scheduled">0</strong><small>scheduled</small></div><div><span class="legend-dot gray-legend"></span><strong id="queue-drafts">0</strong><small>need a date</small></div></div></div>
+                <div class="queue-message"><i data-lucide="sparkles"></i><p><strong>Nice rhythm!</strong> Counts are based on your saved posts.</p></div>
               </article>
               <article class="panel quick-panel">
                 <div class="panel-heading"><div><div class="section-kicker">SHORTCUTS</div><h2>Quick actions</h2></div></div>
@@ -139,16 +128,11 @@
           <section class="bottom-grid">
             <article class="panel recent-panel">
               <div class="panel-heading"><div><div class="section-kicker">CONTENT PIPELINE</div><h2>Recent content <span class="heading-count">8 items</span></h2></div><button class="text-button" type="button" id="open-library">View library <i data-lucide="arrow-up-right"></i></button></div>
-              <div class="content-table">
-                <div class="table-head"><span>CONTENT</span><span>TYPE</span><span>STATUS</span><span>DATE</span><span></span></div>
-                <div class="content-row"><div class="content-name"><div class="table-thumb thumb-coffee"></div><span><strong>Monday mood ☕</strong><small>Slow mornings, big ideas.</small></span></div><span class="type-tag"><i data-lucide="layers-2"></i> Carousel</span><span class="status-tag status-scheduled"><i></i> Scheduled</span><span class="row-date">Today, 9:30 AM</span><button class="row-menu" type="button"><i data-lucide="more-horizontal"></i></button></div>
-                <div class="content-row"><div class="content-name"><div class="table-thumb thumb-portrait"></div><span><strong>Meet the maker</strong><small>Inside the Lunar Studio.</small></span></div><span class="type-tag"><i data-lucide="image"></i> Photo</span><span class="status-tag status-draft"><i></i> Draft</span><span class="row-date">Updated 2h ago</span><button class="row-menu" type="button"><i data-lucide="more-horizontal"></i></button></div>
-                <div class="content-row"><div class="content-name"><div class="table-thumb thumb-green"></div><span><strong>3 ways to reset</strong><small>A tiny reset for busy days.</small></span></div><span class="type-tag"><i data-lucide="layers-2"></i> Carousel</span><span class="status-tag status-published"><i></i> Published</span><span class="row-date">Yesterday, 10:00 AM</span><button class="row-menu" type="button"><i data-lucide="more-horizontal"></i></button></div>
-              </div>
+              <div class="content-table"><div class="table-head"><span>CONTENT</span><span>TYPE</span><span>STATUS</span><span>DATE</span><span>ACTIONS</span></div><div class="content-row"><div class="content-name"><span><strong>Your content will show here</strong><small>Save a post to populate this list.</small></span></div></div></div>
             </article>
             <article class="panel best-time-panel">
               <div class="panel-heading"><div><div class="section-kicker">YOUR AUDIENCE</div><h2>Best time to post</h2></div><button class="dots-button" type="button"><i data-lucide="more-horizontal"></i></button></div>
-              <div class="best-time-main"><div><strong>7:00 PM</strong><span>Thursday is your sweet spot</span></div><div class="time-score"><i data-lucide="clock-3"></i> 94% likely to engage</div></div>
+              <div class="best-time-main"><div><strong>—</strong><span>No audience analytics connected</span></div><div class="time-score"><i data-lucide="clock-3"></i> Analytics unavailable</div></div>
               <div class="chart-area"><div class="chart-y"><span>100%</span><span>50%</span><span>0%</span></div><div class="chart-bars"><div><i style="height: 43%"></i><span>Mon</span></div><div><i style="height: 57%"></i><span>Tue</span></div><div><i style="height: 50%"></i><span>Wed</span></div><div class="peak"><i style="height: 94%"></i><span>Thu</span></div><div><i style="height: 71%"></i><span>Fri</span></div><div><i style="height: 38%"></i><span>Sat</span></div><div><i style="height: 29%"></i><span>Sun</span></div></div></div>
             </article>
           </section>
@@ -167,7 +151,7 @@
             <div class="bulk-drop-zone" id="bulk-drop-zone"><i data-lucide="layers-3"></i><div><strong>Drop multiple media files here</strong><span>JPG, PNG, MP4, MOV · up to 2GB each</span></div><input type="file" id="bulk-file-input" hidden accept="image/*,video/*" multiple /></div>
             <div class="batch-preview"><div class="batch-file"><span class="batch-file-icon thumb-coffee"></span><span><strong>3 morning rituals</strong><small>Carousel · 4 slides</small></span><i data-lucide="check-circle-2"></i></div><div class="batch-file"><span class="batch-file-icon reel-preview"><i data-lucide="play"></i></span><span><strong>Studio reset</strong><small>Reel · 00:24</small></span><i data-lucide="check-circle-2"></i></div><div class="batch-file"><span class="batch-file-icon thumb-flowers"></span><span><strong>Little things</strong><small>Photo · 1 image</small></span><i data-lucide="check-circle-2"></i></div><div class="batch-count">+ 5 more items ready to schedule</div></div>
             <div class="form-two-col"><div><label class="form-label" for="bulk-start-date">Start date</label><div class="input-with-icon"><i data-lucide="calendar-days"></i><input id="bulk-start-date" type="date" value="2024-10-17" /></div></div><div><label class="form-label" for="bulk-window">Posting window</label><div class="input-with-icon"><i data-lucide="clock-3"></i><input id="bulk-window" type="time" value="19:00" /></div></div></div>
-            <div class="bulk-note"><i data-lucide="sparkles"></i><span>We’ll stagger your batch using your best-performing times and keep the mix balanced.</span></div>
+            <div class="bulk-note"><i data-lucide="sparkles"></i><span>Posts will be scheduled one per day starting on your selected date.</span></div>
           </div>
           <div class="single-fields">
             <label class="form-label">What are you creating?<span class="required">*</span></label>
