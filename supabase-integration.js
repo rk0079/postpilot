@@ -647,8 +647,10 @@
       } else {
         status.textContent = "Not connected yet. Connect a professional Instagram Business account linked to a Facebook Page.";
       }
-    } catch (_) {
-      status.textContent = "Backend setup required: apply the SQL migration, deploy the Edge Function, and configure Meta secrets.";
+    } catch (error) {
+      const detail = error?.message || error?.context?.message || "Unknown connection error";
+      status.textContent = "Could not check Instagram connection: " + detail + ". Check the Edge Function logs and Meta configuration if this continues.";
+      console.error("PostPilot Instagram status check failed:", error);
     }
   }
 
