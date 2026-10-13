@@ -316,6 +316,7 @@ document.addEventListener('DOMContentLoaded', () => {
 
     if (view === 'calendar') {
       setActiveNav('calendar');
+      closeLibraryPage();
       openFullCalendar();
       if (window.location.hash !== '#calendar') {
         history.pushState({view:'calendar'}, '', '#calendar');
@@ -323,7 +324,16 @@ document.addEventListener('DOMContentLoaded', () => {
       return;
     }
 
+    if (view === 'library') {
+      openLibraryPage();
+      if (window.location.hash !== '#library') {
+        history.pushState({view:'library'}, '', '#library');
+      }
+      return;
+    }
+
     if (!fullCalendar.hidden) closeFullCalendar();
+    closeLibraryPage();
     setActiveNav(view);
 
     const crumb = document.querySelector('.breadcrumbs strong');
