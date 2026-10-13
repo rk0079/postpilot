@@ -121,6 +121,117 @@ document.addEventListener('DOMContentLoaded', () => {
   const filteredCalendarPosts = () => calendarPosts.filter(post => calendarFilter === 'all' || post.status === calendarFilter);
   const postsForDay = (date) => filteredCalendarPosts().filter(post => post.scheduled_at && dateKey(new Date(post.scheduled_at)) === dateKey(date));
   const statusLabel = (status) => status === 'scheduled' ? 'Scheduled' : status === 'published' ? 'Published' : 'Draft';
+  let libraryPosts = [];
+
+  const libraryStatusLabel = (status) => status === 'published' ? 'Published' : status === 'scheduled' ? 'Scheduled' : 'Draft';
+  const openLibraryPage = () => {
+    fullCalendar.hidden = true;
+    pageContent.hidden = true;
+    let libraryView = document.querySelector('#content-library-view');
+    if (!libraryView) {
+      libraryView = document.createElement('section');
+      libraryView.id = 'content-library-view';
+      libraryView.className = 'content-library-page';
+      mainArea.insertBefore(libraryView, pageContent);
+    }
+    libraryView.hidden = false;
+    setActiveNav('library');
+    const crumb = document.querySelector('.breadcrumbs strong');
+    if (crumb) crumb.textContent = 'Content library';
+    renderLibrary();
+    window.scrollTo({top:0, behavior:'smooth'});
+  };
+
+  const closeLibraryPage = () => {
+    const libraryView = document.querySelector('#content-library-view');
+    if (libraryView) libraryView.hidden = true;
+    pageContent.hidden = false;
+  };
+
+  const renderLibrary = () => {
+    const libraryView = document.querySelector('#content-library-view');
+    if (!libraryView) return;
+    const total = libraryPosts.length;
+    const scheduled = libraryPosts.filter(p => p.status === 'scheduled').length;
+    const drafts = libraryPosts.filter(p => p.status === 'draft').length;
+    const published = libraryPosts.filter(p => p.status === 'published').length;
+
+    libraryView.innerHTML = `
+      <div class="full-calendar-shell">
+        <div class="full-calendar-title-row">
+          <div><div class="section-kicker">CONTENT WORKSPACE</div><h1>Content library</h1><p>All your saved posts, drafts and scheduled content in one place.</p></div>
+          <button type="button" class="primary-button" id="library-create"><i data-lucide="plus"></i> Create post</button>
+        </div>
+        <div class="library-summary-grid">
+          <div class="library-summary-card"><span>Total content</span><strong>${total}</strong></div>
+          <div class="library-summary-card"><span>Scheduled</span><strong>${scheduled}</strong></div>
+          <div class="library-summary-card"><span>Drafts</span><strong>${drafts}</strong></div>
+          <div class="library-summary-card"><span>Published</span><strong>${published}</strong></div>
+        </div>
+        <div class="library-toolbar">
+          <label class="library-search"><i data-lucide="search"></i><input id="library-search-input" type="search" placeholder="Search content..." aria-label="Search content"></label>
+          <select id="library-status-filter" aria-label="Filter content"><option value="all">All status</option><option value="scheduled">Scheduled</option><option value="draft">Drafts</option><option value="published">Published</option></select>
+          <button type="button" class="secondary-button" id="library-refresh"><i data-lucide="refresh-cw"></i> Refresh</button>
+        </div>
+        <div class="library-list" id="library-list" aria-live="polite"></div>
+      </div>`;
+    if (window.lucide) window.lucide.createIcons();
+
+    const paint = () => {
+      const query = (document.querySelector('#library-search-input')?.value || '').trim().toLowerCase();
+      const filter = document.querySelector('#library-status-filter')?.value || 'all';
+      const items = libraryPosts.filter(post => {
+        const haystack = [post.title, post.caption, post.content_type, post.status].join(' ').toLowerCase();
+        return (filter === 'all' || post.status === filter) && (!query || haystack.includes(query));
+      });
+      const list = document.querySelector('#library-list');
+      if (!list) return;
+      if (!items.length) {
+        list.innerHTML = '<div class="library-empty"><i data-lucide="folder-open"></i><strong>No content found</strong><span>Try another search or create a new post.</span></div>';
+      } else {
+        list.innerHTML = items.map(post => {
+          const date = post.scheduled_at ? new Date(post.scheduled_at).toLocaleString([], {dateStyle:'medium', timeStyle:'short'}) : 'No date set';
+          const approval = post.approval_status === 'pending' ? ' · Awaiting approval' : post.approval_status === 'failed' ? ' · Publish failed' : '';
+          const caption = (post.caption || 'No caption added').replace(/\s+/g,' ').slice(0,110);
+          return `<article class="library-item">
+            <div class="library-item-thumb">${post.media_url ? '<i data-lucide="image"></i>' : '<i data-lucide="file-text"></i>'}</div>
+            <div class="library-item-main"><div class="library-item-title-row"><strong>${escapeHtml(post.title || 'Untitled content')}</strong><span class="status-tag status-${escapeHtml(post.status || 'draft')}"><i></i>${libraryStatusLabel(post.status)}${approval}</span></div><p>${escapeHtml(caption)}</p><small>${escapeHtml(post.content_type || 'post')} · ${escapeHtml(date)}</small></div>
+            <div class="library-item-actions">
+              <button type="button" class="row-menu publish-action" data-library-copy="${escapeHtml(post.id)}">Copy caption</button>
+              <button type="button" class="row-menu" data-library-instagram="${escapeHtml(post.id)}">Open Instagram</button>
+            </div>
+          </article>`;
+        }).join('');
+      }
+      if (window.lucide) window.lucide.createIcons();
+    };
+    document.querySelector('#library-search-input')?.addEventListener('input', paint);
+    document.querySelector('#library-status-filter')?.addEventListener('change', paint);
+    document.querySelector('#library-refresh')?.addEventListener('click', () => {
+      window.dispatchEvent(new CustomEvent('postpilot:library-refresh'));
+      paint();
+    });
+    document.querySelector('#library-create')?.addEventListener('click', () => openModal());
+    libraryView.onclick = async (event) => {
+      const copy = event.target.closest('[data-library-copy]');
+      const instagram = event.target.closest('[data-library-instagram]');
+      if (copy) {
+        const post = libraryPosts.find(p => p.id === copy.dataset.libraryCopy);
+        if (post) {
+          const text = [post.caption || '', ...(Array.isArray(post.hashtags) ? post.hashtags : [])].filter(Boolean).join(' ');
+          try { await navigator.clipboard.writeText(text); showToast('Caption copied to clipboard.'); } catch (_) { showToast('Could not copy caption.'); }
+        }
+      }
+      if (instagram) window.open('https://www.instagram.com/', '_blank', 'noopener,noreferrer');
+    };
+    paint();
+  };
+
+  window.addEventListener('postpilot:posts-updated', event => {
+    libraryPosts = Array.isArray(event.detail?.posts) ? event.detail.posts : [];
+    if (window.location.hash === '#library') renderLibrary();
+  });
+
   const openComposerForDate = (date) => {
     const dateInput = document.querySelector('#schedule-date');
     if (dateInput) dateInput.value = dateKey(date);
