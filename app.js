@@ -179,17 +179,71 @@ document.addEventListener('DOMContentLoaded', () => {
   };
   const closeFullCalendar = () => { fullCalendar.hidden=true; pageContent.hidden=false; const crumb=document.querySelector('.breadcrumbs strong'); if(crumb) crumb.textContent='Overview'; };
   window.addEventListener('postpilot:posts-updated', event => { calendarPosts=Array.isArray(event.detail?.posts)?event.detail.posts:[]; renderFullCalendar(); });
+
+  // Real sidebar routing: Overview is a route, not just a scroll target.
+  const setActiveNav = (view) => {
+    document.querySelectorAll('.nav-item').forEach(nav => nav.classList.toggle('active', nav.dataset.view === view));
+  };
+
+  const showOverview = ({updateUrl = true} = {}) => {
+    if (!fullCalendar.hidden) closeFullCalendar();
+    pageContent.hidden = false;
+    setActiveNav('overview');
+    const crumb = document.querySelector('.breadcrumbs strong');
+    if (crumb) crumb.textContent = 'Overview';
+    if (updateUrl && window.location.hash !== '#overview') {
+      history.pushState({view:'overview'}, '', '#overview');
+    }
+    window.scrollTo({top:0, behavior:'smooth'});
+  };
+
+  const navigateSidebar = (view, item) => {
+    if (view === 'overview') {
+      showOverview();
+      return;
+    }
+
+    if (view === 'calendar') {
+      setActiveNav('calendar');
+      openFullCalendar();
+      if (window.location.hash !== '#calendar') {
+        history.pushState({view:'calendar'}, '', '#calendar');
+      }
+      return;
+    }
+
+    if (!fullCalendar.hidden) closeFullCalendar();
+    setActiveNav(view);
+
+    const crumb = document.querySelector('.breadcrumbs strong');
+    if (crumb) crumb.textContent = item.querySelector('span:nth-child(2)')?.textContent || view;
+
+    // Library gets its own route foundation; the full Library page comes next.
+    if (view === 'library') {
+      document.querySelector('.recent-panel')?.scrollIntoView({behavior:'smooth', block:'start'});
+      if (window.location.hash !== '#library') {
+        history.pushState({view:'library'}, '', '#library');
+      }
+      return;
+    }
+
+    showToast(({analytics:'Analytics page will be implemented next.',inbox:'Social Inbox page will be implemented next.',team:'Team & Roles page will be implemented next.',settings:'Settings page will be implemented next.'})[view] || 'This section will be implemented next.');
+  };
+
   document.querySelectorAll('.nav-item').forEach((item) => {
-    item.addEventListener('click', () => {
-      const view=item.dataset.view;
-      if(view==='calendar'){document.querySelectorAll('.nav-item').forEach(nav=>nav.classList.toggle('active',nav===item));openFullCalendar();return;}
-      if(fullCalendar.hidden===false) closeFullCalendar();
-      document.querySelectorAll('.nav-item').forEach(nav=>nav.classList.remove('active')); item.classList.add('active');
-      const targets={overview:'.welcome-row',library:'.recent-panel'};
-      if(!targets[view]){showToast(({analytics:'Instagram analytics are not connected yet.',inbox:'A social inbox is not connected yet.',team:'Team collaboration is not available yet.',settings:'Account settings are not available yet.'})[view]||'This section is not available yet.');return;}
-      const target=document.querySelector(targets[view]);if(target){target.scrollIntoView({behavior:'smooth',block:'start'});const crumb=document.querySelector('.breadcrumbs strong');if(crumb)crumb.textContent=item.querySelector('span:nth-child(2)')?.textContent||'Overview';}
-    });
+    item.addEventListener('click', () => navigateSidebar(item.dataset.view, item));
   });
+
+  window.addEventListener('popstate', () => {
+    const view = window.location.hash.replace('#','') || 'overview';
+    const item = document.querySelector(`.nav-item[data-view="${view}"]`);
+    if (item) navigateSidebar(view, item);
+    else showOverview({updateUrl:false});
+  });
+
+  if (!window.location.hash) {
+    history.replaceState({view:'overview'}, '', '#overview');
+  }
   document.querySelector('#full-calendar-create')?.addEventListener('click',()=>openComposerForDate(calendarDate));
   document.querySelector('#calendar-prev')?.addEventListener('click',()=>{if(calendarMode==='month')calendarDate=new Date(calendarDate.getFullYear(),calendarDate.getMonth()-1,1);else{calendarDate.setDate(calendarDate.getDate()-7);}renderFullCalendar();});
   document.querySelector('#calendar-next')?.addEventListener('click',()=>{if(calendarMode==='month')calendarDate=new Date(calendarDate.getFullYear(),calendarDate.getMonth()+1,1);else{calendarDate.setDate(calendarDate.getDate()+7);}renderFullCalendar();});
