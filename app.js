@@ -422,7 +422,7 @@ document.addEventListener('DOMContentLoaded', () => {
   const workspaceViews = document.createElement('section');
   workspaceViews.id = 'postpilot-workspace-views';
   workspaceViews.hidden = true;
-  workspaceViews.innerHTML = \`
+  workspaceViews.innerHTML = `
     <div id="postpilot-inbox-page" class="workspace-page" hidden>
       <div class="workspace-page-heading"><div><div class="section-kicker">COMMUNITY</div><h1>Social inbox</h1><p>Review Instagram conversations and comments in one place.</p></div><button class="primary-button" type="button" data-inbox-refresh><i data-lucide="refresh-cw"></i> Refresh inbox</button></div>
       <div id="inbox-status" class="workspace-status" hidden></div>
@@ -463,7 +463,7 @@ document.addEventListener('DOMContentLoaded', () => {
         <section class="panel settings-panel"><div class="panel-heading"><div><div class="section-kicker">ACCOUNT SECURITY</div><h2>Change password</h2></div><span class="settings-panel-icon"><i data-lucide="lock-keyhole"></i></span></div><form id="settings-password-form" class="workspace-form"><label for="settings-new-password">New password</label><input id="settings-new-password" type="password" minlength="8" autocomplete="new-password" placeholder="At least 8 characters" required/><label for="settings-confirm-password">Confirm new password</label><input id="settings-confirm-password" type="password" minlength="8" autocomplete="new-password" placeholder="Enter it again" required/><button type="submit" class="secondary-button">Update password</button><p id="settings-password-status" class="form-status" role="status"></p></form><div class="settings-divider"></div><button type="button" class="danger-button" data-settings-signout><i data-lucide="log-out"></i> Sign out of PostPilot</button></section>
       </div>
       <div class="settings-save-footer"><span>Settings are private to your account.</span><button class="primary-button" type="button" data-settings-save><i data-lucide="save"></i> Save settings</button></div>
-    </div>\`;
+    </div>`;
   mainArea.insertBefore(workspaceViews, pageContent);
   if (window.lucide) window.lucide.createIcons();
 
