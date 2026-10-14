@@ -586,6 +586,12 @@ document.addEventListener('DOMContentLoaded', () => {
     try { if(!window.postpilotWorkspace?.getUser())throw new Error('Sign in to update account and workspace settings.');settingsData=await window.postpilotWorkspace.getProfile();renderSettings();await refreshInstagramSettingsStatus(); }
     catch(error){settingsError=error?.message||'Could not load settings.';workspaceNotice(document.querySelector('#settings-status'),settingsError,'error');}
   }
+  window.addEventListener('postpilot:auth-ready', () => {
+    if (activeWorkspacePage === 'inbox') loadInbox();
+    if (activeWorkspacePage === 'team') loadTeam();
+    if (activeWorkspacePage === 'settings') loadSettings();
+  });
+
   async function saveSettings() {
     if(!window.postpilotWorkspace?.getUser()){workspaceNotice(document.querySelector('#settings-status'),'Sign in to save settings.','error');return;}
     const button=document.querySelector('[data-settings-save]'),original=button?.innerHTML;
