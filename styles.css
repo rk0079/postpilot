@@ -652,9 +652,3 @@ button:focus-visible, input:focus-visible, textarea:focus-visible { outline: 3px
   .workspace-table th, .workspace-table td { padding:10px 8px; }
 }
 
-
-/* Premium PostPilot brand refresh */
-.brand-row { gap: 9px; padding-left: 9px; }
-.brand-logo-image { display:block; width:31px; height:31px; flex:0 0 31px; border-radius:9px; box-shadow:0 4px 12px rgba(108,62,245,.25); }
-.brand-name { display:inline-flex; gap:0; font-size:20px; letter-spacing:-.9px; color:#fff; }
-.brand-name-accent { background:linear-gradient(100deg,#8d55ff 0%,#f02d9a 56%,#ff7543 100%); -webkit-background-clip:text; background-clip:text; color:transparent; }
