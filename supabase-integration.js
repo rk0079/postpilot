@@ -811,6 +811,22 @@
     }, true);
   }
 
+
+  // Shared, authenticated bridge for the Analytics page. The Edge Function owns all Meta tokens.
+  window.postpilotFetchInsights = async (days = 30) => {
+    const { data: sessionData, error: sessionError } = await client.auth.getSession();
+    if (sessionError) throw sessionError;
+    if (!sessionData?.session?.access_token) {
+      throw new Error("Sign in to PostPilot to view Instagram analytics.");
+    }
+    const { data, error } = await client.functions.invoke("instagram-publishing", {
+      body: { action: "insights", days: [7, 30, 90].includes(Number(days)) ? Number(days) : 30 }
+    });
+    if (error) throw new Error(error.message || "Could not load Instagram insights.");
+    if (data?.error) throw new Error(data.error);
+    return data;
+  };
+
   document.addEventListener("DOMContentLoaded", async () => {
     buildAuth();
     addBulkCaptionField();
