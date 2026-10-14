@@ -788,16 +788,12 @@ document.addEventListener('DOMContentLoaded', () => {
     if (action === 'upload') openModal();
     if (action === 'bulk') openModal('bulk');
     if (action === 'caption') { openModal(); window.setTimeout(() => document.querySelector('#content-caption')?.focus(), 100); }
-    if (action === 'invite') showToast('Team invitations are not available yet.');
+    if (action === 'invite') openWorkspacePage('team');
   }));
 
   document.querySelector('#view-calendar')?.addEventListener('click', () => { openFullCalendar(); });
-  document.querySelector('#open-library')?.addEventListener('click', () => {
-    document.querySelector('.recent-panel')?.scrollIntoView({ behavior: 'smooth', block: 'start' });
-    showToast('Content Library brought into view');
-  });
+  document.querySelector('#open-library')?.addEventListener('click', () => { const item=document.querySelector('.nav-item[data-view="library"]'); if(item) navigateSidebar('library',item); });
   document.querySelectorAll('.empty-day-button').forEach((button) => button.addEventListener('click', openModal));
-  document.querySelector('.notification-button')?.addEventListener('click', () => showToast('Notifications are currently limited to reminders you set for individual posts.'));
   document.querySelector('.pro-button')?.addEventListener('click', () => showToast('Paid plans are not configured in this version.'));
   document.querySelector('.workspace-switcher')?.addEventListener('click', () => showToast('This account currently has one workspace.'));
 });
