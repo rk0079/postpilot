@@ -453,7 +453,7 @@ document.addEventListener('DOMContentLoaded', () => {
       <div id="settings-status" class="workspace-status" hidden></div>
       <div class="settings-layout">
         <section class="panel settings-panel"><div class="panel-heading"><div><div class="section-kicker">YOUR PROFILE</div><h2>Workspace details</h2></div><span class="settings-panel-icon"><i data-lucide="user-round"></i></span></div>
-          <form id="settings-profile-form" class="workspace-form"><label for="settings-full-name">Your name</label><input id="settings-full-name" type="text" required maxlength="100"/><label for="settings-workspace-name">Workspace name</label><input id="settings-workspace-name" type="text" required maxlength="100"/><label for="settings-email">Account email</label><input id="settings-email" type="email" readonly/><label for="settings-timezone">Time zone</label><select id="settings-timezone"><option value="Asia/Kolkata">India Standard Time · Asia/Kolkata</option><option value="UTC">UTC</option><option value="Europe/London">London · Europe/London</option><option value="America/New_York">New York · America/New_York</option><option value="Australia/Sydney">Sydney · Australia/Sydney</option></select><button type="button" class="secondary-button" data-profile-save>Save profile</button></form>
+          <form id="settings-profile-form" class="workspace-form"><label for="settings-full-name">Your name</label><input id="settings-full-name" type="text" required maxlength="100"/><label for="settings-workspace-name">Workspace name</label><input id="settings-workspace-name" type="text" required maxlength="100"/><label for="settings-email">Account email</label><input id="settings-email" type="email" readonly/><label for="settings-timezone">Time zone</label><select id="settings-timezone"><option value="Asia/Kolkata">India Standard Time · Asia/Kolkata</option><option value="UTC">UTC</option><option value="Europe/London">London · Europe/London</option><option value="America/New_York">New York · America/New_York</option><option value="Australia/Sydney">Sydney · Australia/Sydney</option></select><p class="workspace-footnote">Saved as a workspace preference. Calendar times currently follow your device time zone.</p><button type="button" class="secondary-button" data-profile-save>Save profile</button></form>
         </section>
         <section class="panel settings-panel"><div class="panel-heading"><div><div class="section-kicker">REMINDERS</div><h2>Publishing reminders</h2></div><span class="settings-panel-icon"><i data-lucide="bell-ring"></i></span></div>
           <div class="settings-options"><label class="settings-option"><span><strong>In-app reminders</strong><small>Show reminders while PostPilot is open.</small></span><input type="checkbox" id="settings-inapp-reminders" checked/></label><label class="settings-option settings-option-muted"><span><strong>Email reminders</strong><small>Email delivery is not configured for this project yet.</small></span><input type="checkbox" id="settings-email-reminders" disabled/></label><label for="settings-reminder-minutes" class="settings-label">Remind me before a scheduled post</label><select id="settings-reminder-minutes"><option value="10">10 minutes</option><option value="30" selected>30 minutes</option><option value="60">1 hour</option><option value="1440">1 day</option></select></div>
@@ -594,6 +594,11 @@ document.addEventListener('DOMContentLoaded', () => {
       const timezone=document.querySelector('#settings-timezone').value;
       const reminders={in_app:document.querySelector('#settings-inapp-reminders').checked,email:false,before_minutes:Number(document.querySelector('#settings-reminder-minutes').value)||30};
       await window.postpilotWorkspace.saveSettings({timezone,reminders,publishing:{require_approval:true,default_platform:'instagram'}});
+      try {
+        localStorage.setItem('postpilot-in-app-reminders', reminders.in_app ? 'true' : 'false');
+        localStorage.setItem('postpilot-reminder-before-minutes', String(reminders.before_minutes));
+      } catch (_) {}
+      window.dispatchEvent(new CustomEvent('postpilot:reminder-preferences-changed', {detail:reminders}));
       settingsData={...(settingsData||{}),timezone,reminders,publishing:{require_approval:true,default_platform:'instagram'}};
       workspaceNotice(document.querySelector('#settings-status'),'Settings saved successfully.','success');
     } catch(error){workspaceNotice(document.querySelector('#settings-status'),error.message||'Could not save settings.','error');}
@@ -667,7 +672,6 @@ document.addEventListener('DOMContentLoaded', () => {
       finally{button.disabled=false;button.textContent='Update password';}
     }
   });
-  document.querySelectorAll('[data-settings-save]').forEach(button=>button.addEventListener('click',saveSettings));
   document.querySelector('.notification-button')?.addEventListener('click',()=>openWorkspacePage('settings'));
   document.querySelector('.invite-button')?.addEventListener('click',()=>openWorkspacePage('team'));
 
@@ -751,7 +755,7 @@ document.addEventListener('DOMContentLoaded', () => {
       return;
     }
 
-    showToast(({analytics:'Analytics page will be implemented next.',inbox:'Social Inbox page will be implemented next.',team:'Team & Roles page will be implemented next.',settings:'Settings page will be implemented next.'})[view] || 'This section will be implemented next.');
+    showToast('This section is not available in this workspace.');
   };
 
   document.querySelectorAll('.nav-item').forEach((item) => {
