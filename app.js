@@ -414,6 +414,57 @@ document.addEventListener('DOMContentLoaded', () => {
     }
   });
 
+
+  // Remaining workspace pages: Social Inbox, Team & Roles, and Settings.
+  const workspaceViews = document.createElement('section');
+  workspaceViews.id = 'postpilot-workspace-views';
+  workspaceViews.hidden = true;
+  workspaceViews.innerHTML = \`
+    <div id="postpilot-inbox-page" class="workspace-page" hidden>
+      <div class="workspace-page-heading"><div><div class="section-kicker">COMMUNITY</div><h1>Social inbox</h1><p>Review Instagram conversations and comments in one place.</p></div><button class="primary-button" type="button" data-inbox-refresh><i data-lucide="refresh-cw"></i> Refresh inbox</button></div>
+      <div id="inbox-status" class="workspace-status" hidden></div>
+      <div class="inbox-layout panel">
+        <aside class="inbox-list-pane"><div class="inbox-tabs"><button type="button" class="inbox-tab active" data-inbox-tab="messages">Messages <span id="inbox-message-count">—</span></button><button type="button" class="inbox-tab" data-inbox-tab="comments">Comments <span id="inbox-comment-count">—</span></button></div><div id="inbox-list" class="inbox-list"></div></aside>
+        <section id="inbox-detail" class="inbox-detail"><div class="inbox-empty"><i data-lucide="messages-square"></i><strong>Your Instagram inbox</strong><span>Choose a conversation or comment to read and reply.</span></div></section>
+      </div>
+      <p class="workspace-footnote">Direct messages and comment replies require the relevant Instagram permissions and Meta app approval. PostPilot never invents conversations or comments.</p>
+    </div>
+    <div id="postpilot-team-page" class="workspace-page" hidden>
+      <div class="workspace-page-heading"><div><div class="section-kicker">COLLABORATION</div><h1>Team &amp; roles</h1><p>Manage workspace invitations and the access level you intend to grant.</p></div><span class="workspace-owner-pill"><i data-lucide="shield-check"></i> Workspace owner</span></div>
+      <div class="workspace-notice workspace-notice-info"><i data-lucide="info"></i><div><strong>Invitation delivery is not connected yet</strong><p>Invitations are saved here as pending records, but PostPilot does not email them automatically or grant access to another account yet. Copy the invitation details to share manually.</p></div></div>
+      <div class="team-grid">
+        <section class="panel team-invite-panel"><div class="panel-heading"><div><div class="section-kicker">ADD A COLLABORATOR</div><h2>Invite to workspace</h2></div><span class="team-panel-icon"><i data-lucide="user-round-plus"></i></span></div>
+          <form id="team-invite-form" class="workspace-form"><label for="team-invite-email">Email address</label><input id="team-invite-email" type="email" placeholder="teammate@company.com" required/><label for="team-invite-role">Role</label><select id="team-invite-role"><option value="editor">Editor · Create and manage content</option><option value="admin">Admin · Workspace administration</option><option value="viewer">Viewer · Read-only access</option></select><button type="submit" class="primary-button"><i data-lucide="user-plus"></i> Save invitation</button><p id="team-form-status" class="form-status" role="status"></p></form>
+        </section>
+        <section class="panel team-roles-panel"><div class="panel-heading"><div><div class="section-kicker">ROLE GUIDE</div><h2>Access levels</h2></div></div>
+          <div class="team-role-row"><span class="role-icon role-admin"><i data-lucide="shield-check"></i></span><div><strong>Admin</strong><p>Intended for workspace settings and collaborator management.</p></div></div>
+          <div class="team-role-row"><span class="role-icon role-editor"><i data-lucide="pen-line"></i></span><div><strong>Editor</strong><p>Intended for creating, editing and scheduling content.</p></div></div>
+          <div class="team-role-row"><span class="role-icon role-viewer"><i data-lucide="eye"></i></span><div><strong>Viewer</strong><p>Intended for reviewing content and the publishing calendar.</p></div></div>
+          <p class="workspace-footnote">Role enforcement and shared workspace access are not active until team membership is implemented.</p>
+        </section>
+      </div>
+      <section class="panel team-invites-list"><div class="panel-heading"><div><div class="section-kicker">INVITATION LOG</div><h2>Pending and past invitations</h2></div><button type="button" class="secondary-button" data-team-refresh><i data-lucide="refresh-cw"></i> Refresh</button></div><div id="team-invites-table"></div></section>
+    </div>
+    <div id="postpilot-settings-page" class="workspace-page" hidden>
+      <div class="workspace-page-heading"><div><div class="section-kicker">WORKSPACE PREFERENCES</div><h1>Settings</h1><p>Update your profile, reminders, publishing workflow and account security.</p></div><button class="primary-button" type="button" data-settings-save><i data-lucide="save"></i> Save settings</button></div>
+      <div id="settings-status" class="workspace-status" hidden></div>
+      <div class="settings-layout">
+        <section class="panel settings-panel"><div class="panel-heading"><div><div class="section-kicker">YOUR PROFILE</div><h2>Workspace details</h2></div><span class="settings-panel-icon"><i data-lucide="user-round"></i></span></div>
+          <form id="settings-profile-form" class="workspace-form"><label for="settings-full-name">Your name</label><input id="settings-full-name" type="text" required maxlength="100"/><label for="settings-workspace-name">Workspace name</label><input id="settings-workspace-name" type="text" required maxlength="100"/><label for="settings-email">Account email</label><input id="settings-email" type="email" readonly/><label for="settings-timezone">Time zone</label><select id="settings-timezone"><option value="Asia/Kolkata">India Standard Time · Asia/Kolkata</option><option value="UTC">UTC</option><option value="Europe/London">London · Europe/London</option><option value="America/New_York">New York · America/New_York</option><option value="Australia/Sydney">Sydney · Australia/Sydney</option></select><button type="button" class="secondary-button" data-profile-save>Save profile</button></form>
+        </section>
+        <section class="panel settings-panel"><div class="panel-heading"><div><div class="section-kicker">REMINDERS</div><h2>Publishing reminders</h2></div><span class="settings-panel-icon"><i data-lucide="bell-ring"></i></span></div>
+          <div class="settings-options"><label class="settings-option"><span><strong>In-app reminders</strong><small>Show reminders while PostPilot is open.</small></span><input type="checkbox" id="settings-inapp-reminders" checked/></label><label class="settings-option settings-option-muted"><span><strong>Email reminders</strong><small>Email delivery is not configured for this project yet.</small></span><input type="checkbox" id="settings-email-reminders" disabled/></label><label for="settings-reminder-minutes" class="settings-label">Remind me before a scheduled post</label><select id="settings-reminder-minutes"><option value="10">10 minutes</option><option value="30" selected>30 minutes</option><option value="60">1 hour</option><option value="1440">1 day</option></select></div>
+          <div class="settings-divider"></div><div class="section-kicker">PUBLISHING SAFETY</div><div class="settings-static-row"><span class="settings-panel-icon"><i data-lucide="shield-check"></i></span><div><strong>Manual approval required</strong><p>PostPilot will not automatically publish without an explicit action. Publishing approval remains enabled for safety.</p></div><span class="settings-on-pill">On</span></div>
+        </section>
+        <section class="panel settings-panel"><div class="panel-heading"><div><div class="section-kicker">INSTAGRAM</div><h2>Connected account</h2></div><span class="settings-panel-icon"><i data-lucide="instagram"></i></span></div><div id="settings-instagram-status" class="instagram-settings-status"><span class="analytics-spinner"></span> Checking connection…</div><div class="settings-connection-actions"><button type="button" class="primary-button" data-instagram-connect>Connect / reconnect Instagram</button><button type="button" class="secondary-button" data-instagram-disconnect hidden>Disconnect</button></div><p class="workspace-footnote">Analytics, inbox and publishing depend on your Instagram account type, token validity, permissions and Meta app approval.</p></section>
+        <section class="panel settings-panel"><div class="panel-heading"><div><div class="section-kicker">ACCOUNT SECURITY</div><h2>Change password</h2></div><span class="settings-panel-icon"><i data-lucide="lock-keyhole"></i></span></div><form id="settings-password-form" class="workspace-form"><label for="settings-new-password">New password</label><input id="settings-new-password" type="password" minlength="8" autocomplete="new-password" placeholder="At least 8 characters" required/><label for="settings-confirm-password">Confirm new password</label><input id="settings-confirm-password" type="password" minlength="8" autocomplete="new-password" placeholder="Enter it again" required/><button type="submit" class="secondary-button">Update password</button><p id="settings-password-status" class="form-status" role="status"></p></form><div class="settings-divider"></div><button type="button" class="danger-button" data-settings-signout><i data-lucide="log-out"></i> Sign out of PostPilot</button></section>
+      </div>
+      <div class="settings-save-footer"><span>Settings are private to your account.</span><button class="primary-button" type="button" data-settings-save><i data-lucide="save"></i> Save settings</button></div>
+    </div>\`;
+  mainArea.insertBefore(workspaceViews, pageContent);
+  if (window.lucide) window.lucide.createIcons();
+
+
   // Real sidebar routing: Overview is a route, not just a scroll target.
   const setActiveNav = (view) => {
     document.querySelectorAll('.nav-item').forEach(nav => nav.classList.toggle('active', nav.dataset.view === view));
