@@ -125,6 +125,7 @@ document.addEventListener('DOMContentLoaded', () => {
 
   const libraryStatusLabel = (status) => status === 'published' ? 'Published' : status === 'scheduled' ? 'Scheduled' : 'Draft';
   const openLibraryPage = () => {
+    workspaceViews.hidden = true;
     analyticsView.hidden = true;
     fullCalendar.hidden = true;
     pageContent.hidden = true;
@@ -284,6 +285,7 @@ document.addEventListener('DOMContentLoaded', () => {
     if(window.lucide) window.lucide.createIcons();
   };
   const openFullCalendar = () => {
+    workspaceViews.hidden = true;
     analyticsView.hidden = true;
     fullCalendar.hidden = false; pageContent.hidden = true;
     const crumb=document.querySelector('.breadcrumbs strong'); if(crumb) crumb.textContent='Calendar';
@@ -388,6 +390,7 @@ document.addEventListener('DOMContentLoaded', () => {
     }
   };
   const openAnalyticsPage = () => {
+    workspaceViews.hidden = true;
     if (!fullCalendar.hidden) fullCalendar.hidden = true;
     const libraryView = document.querySelector('#content-library-view');
     if (libraryView) libraryView.hidden = true;
@@ -634,7 +637,7 @@ document.addEventListener('DOMContentLoaded', () => {
   });
   workspaceViews.addEventListener('submit',async event=>{
     if(event.target.id==='team-invite-form'){
-      event.preventDefault();const button=event.target.querySelector('button[type="submit]');button.disabled=true;button.textContent='Saving…';
+      event.preventDefault();const button=event.target.querySelector('button[type="submit"]');button.disabled=true;button.textContent='Saving…';
       try{const invite=await window.postpilotWorkspace.saveInvite({email:document.querySelector('#team-invite-email').value,role:document.querySelector('#team-invite-role').value});document.querySelector('#team-invite-email').value='';teamInvites=await window.postpilotWorkspace.getInvites();renderTeam();workspaceNotice(document.querySelector('#team-form-status'),'Invitation record saved for '+invite.invite_email+'. No email was sent and access has not been granted.','success');}
       catch(error){workspaceNotice(document.querySelector('#team-form-status'),error.message||'Could not save invitation.','error');}
       finally{button.disabled=false;button.innerHTML='<i data-lucide="user-plus"></i> Save invitation';if(window.lucide)window.lucide.createIcons();}
@@ -677,6 +680,7 @@ document.addEventListener('DOMContentLoaded', () => {
   const showOverview = ({updateUrl = true} = {}) => {
     if (!fullCalendar.hidden) closeFullCalendar();
     analyticsView.hidden = true;
+    workspaceViews.hidden = true;
     pageContent.hidden = false;
     setActiveNav('overview');
     const crumb = document.querySelector('.breadcrumbs strong');
@@ -694,6 +698,7 @@ document.addEventListener('DOMContentLoaded', () => {
     }
 
     if (view === 'calendar') {
+      workspaceViews.hidden = true;
       setActiveNav('calendar');
       closeLibraryPage();
       openFullCalendar();
@@ -704,6 +709,7 @@ document.addEventListener('DOMContentLoaded', () => {
     }
 
     if (view === 'analytics') {
+      workspaceViews.hidden = true;
       if (!fullCalendar.hidden) closeFullCalendar();
       closeLibraryPage();
       openAnalyticsPage();
@@ -712,6 +718,7 @@ document.addEventListener('DOMContentLoaded', () => {
     }
 
     if (view === 'library') {
+      workspaceViews.hidden = true;
       analyticsView.hidden = true;
       openLibraryPage();
       if (window.location.hash !== '#library') {
@@ -720,6 +727,13 @@ document.addEventListener('DOMContentLoaded', () => {
       return;
     }
 
+    if (['inbox','team','settings'].includes(view)) {
+      openWorkspacePage(view);
+      if (window.location.hash !== '#' + view) history.pushState({view}, '', '#' + view);
+      return;
+    }
+
+    workspaceViews.hidden = true;
     if (!fullCalendar.hidden) closeFullCalendar();
     analyticsView.hidden = true;
     closeLibraryPage();
