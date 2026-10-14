@@ -837,6 +837,115 @@
     return data;
   };
 
+
+  // Authenticated workspace bridge used by Settings, Team & Roles, and Social Inbox.
+  const invokeInstagramAction = async (body) => {
+    const { data, error } = await client.functions.invoke("instagram-publishing", { body });
+    if (error) {
+      let message = error.message || "Instagram request failed.";
+      try {
+        const response = error.context;
+        if (response && typeof response.clone === "function") {
+          const detail = await response.clone().json();
+          if (detail?.error) message = detail.error;
+        }
+      } catch (_) {}
+      throw new Error(message);
+    }
+    if (data?.error) throw new Error(data.error);
+    return data;
+  };
+  window.postpilotWorkspace = {
+    getUser: () => currentUser ? ({ id: currentUser.id, email: currentUser.email || "", fullName: currentUser.user_metadata?.full_name || "", workspaceName: currentUser.user_metadata?.workspace_name || "" }) : null,
+    getProfile: async () => {
+      if (!currentUser) throw new Error("Sign in to manage your workspace.");
+      const [{ data: profile, error: profileError }, { data: settings, error: settingsError }] = await Promise.all([
+        client.from("profiles").select("full_name,workspace_name").eq("id", currentUser.id).maybeSingle(),
+        client.from("workspace_settings").select("timezone,reminder_preferences,publishing_preferences").eq("user_id", currentUser.id).maybeSingle()
+      ]);
+      if (profileError) throw profileError;
+      if (settingsError) throw settingsError;
+      return {
+        fullName: profile?.full_name || currentUser.user_metadata?.full_name || "",
+        workspaceName: profile?.workspace_name || currentUser.user_metadata?.workspace_name || "",
+        email: currentUser.email || "",
+        timezone: settings?.timezone || "Asia/Kolkata",
+        reminders: settings?.reminder_preferences || { email: false, in_app: true, before_minutes: 30 },
+        publishing: settings?.publishing_preferences || { require_approval: true, default_platform: "instagram" }
+      };
+    },
+    saveProfile: async ({fullName, workspaceName}) => {
+      if (!currentUser) throw new Error("Sign in to update your profile.");
+      const name = String(fullName || "").trim(), workspace = String(workspaceName || "").trim();
+      if (!name || !workspace) throw new Error("Name and workspace name are required.");
+      const { error } = await client.from("profiles").upsert({ id: currentUser.id, full_name: name, workspace_name: workspace, updated_at: new Date().toISOString() });
+      if (error) throw error;
+      const { error: authError } = await client.auth.updateUser({ data: { full_name: name, workspace_name: workspace } });
+      if (authError) throw authError;
+      const profile = document.querySelector(".profile-copy");
+      if (profile) profile.innerHTML = "<strong>" + escapeHtml(name) + "</strong><small>" + escapeHtml(workspace) + "</small>";
+      const switcher = document.querySelector(".workspace-meta");
+      if (switcher) switcher.innerHTML = "<strong>" + escapeHtml(workspace) + "</strong><small>Private workspace</small>";
+      return true;
+    },
+    saveSettings: async ({timezone, reminders, publishing}) => {
+      if (!currentUser) throw new Error("Sign in to save settings.");
+      const { error } = await client.from("workspace_settings").upsert({
+        user_id: currentUser.id,
+        timezone: String(timezone || "Asia/Kolkata"),
+        reminder_preferences: reminders || { email: false, in_app: true, before_minutes: 30 },
+        publishing_preferences: publishing || { require_approval: true, default_platform: "instagram" },
+        updated_at: new Date().toISOString()
+      });
+      if (error) throw error;
+      return true;
+    },
+    changePassword: async (password) => {
+      if (!currentUser) throw new Error("Sign in to change your password.");
+      if (String(password || "").length < 8) throw new Error("Use at least 8 characters for your new password.");
+      const { error } = await client.auth.updateUser({ password: String(password) });
+      if (error) throw error;
+      return true;
+    },
+    signOut: async () => { const { error } = await client.auth.signOut(); if (error) throw error; currentUser = null; window.location.reload(); },
+    getInvites: async () => {
+      if (!currentUser) throw new Error("Sign in to manage your team.");
+      const { data, error } = await client.from("workspace_invites").select("id,invite_email,role,status,created_at").eq("owner_id", currentUser.id).order("created_at", { ascending: false });
+      if (error) throw error;
+      return data || [];
+    },
+    saveInvite: async ({email, role}) => {
+      if (!currentUser) throw new Error("Sign in to invite teammates.");
+      const inviteEmail = String(email || "").trim().toLowerCase();
+      if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(inviteEmail)) throw new Error("Enter a valid email address.");
+      if (inviteEmail === String(currentUser.email || "").toLowerCase()) throw new Error("You are already the workspace owner.");
+      const { data, error } = await client.from("workspace_invites").upsert({
+        owner_id: currentUser.id, invite_email: inviteEmail, role: ["admin","editor","viewer"].includes(role) ? role : "editor", status: "pending"
+      }, { onConflict: "owner_id,invite_email" }).select("id,invite_email,role,status,created_at").single();
+      if (error) throw error;
+      return data;
+    },
+    updateInvite: async ({id, role, status}) => {
+      if (!currentUser) throw new Error("Sign in to manage invitations.");
+      const update = {};
+      if (role && ["admin","editor","viewer"].includes(role)) update.role = role;
+      if (status && ["pending","revoked"].includes(status)) update.status = status;
+      const { error } = await client.from("workspace_invites").update(update).eq("id", id).eq("owner_id", currentUser.id);
+      if (error) throw error;
+      return true;
+    },
+    getInstagramStatus: async () => invokeInstagramAction({action:"status"}),
+    connectInstagram: async () => {
+      const result = await invokeInstagramAction({action:"connect-url"});
+      if (!result.url) throw new Error("Instagram did not return a connection URL.");
+      window.location.href = result.url;
+    },
+    disconnectInstagram: async () => invokeInstagramAction({action:"disconnect"}),
+    getInbox: async () => invokeInstagramAction({action:"inbox"}),
+    replyMessage: async (payload) => invokeInstagramAction({action:"reply-message", ...payload}),
+    replyComment: async (payload) => invokeInstagramAction({action:"reply-comment", ...payload})
+  };
+
   document.addEventListener("DOMContentLoaded", async () => {
     buildAuth();
     addBulkCaptionField();
