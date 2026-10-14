@@ -822,7 +822,17 @@
     const { data, error } = await client.functions.invoke("instagram-publishing", {
       body: { action: "insights", days: [7, 30, 90].includes(Number(days)) ? Number(days) : 30 }
     });
-    if (error) throw new Error(error.message || "Could not load Instagram insights.");
+    if (error) {
+      let message = error.message || "Could not load Instagram insights.";
+      try {
+        const response = error.context;
+        if (response && typeof response.clone === "function") {
+          const detail = await response.clone().json();
+          if (detail?.error) message = detail.error;
+        }
+      } catch (_) {}
+      throw new Error(message);
+    }
     if (data?.error) throw new Error(data.error);
     return data;
   };
