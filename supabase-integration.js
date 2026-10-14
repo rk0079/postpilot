@@ -569,6 +569,7 @@
     }
     const when = scheduledWhen - beforeMinutes * 60000;
     if (when <= Date.now()) {
+      try { localStorage.removeItem("postpilot-reminder:" + postId); } catch (_) {}
       toast("The reminder time has already passed. Choose a shorter lead time or schedule further ahead.");
       return;
     }
