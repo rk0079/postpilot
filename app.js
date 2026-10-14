@@ -291,6 +291,127 @@ document.addEventListener('DOMContentLoaded', () => {
   const closeFullCalendar = () => { fullCalendar.hidden=true; pageContent.hidden=false; const crumb=document.querySelector('.breadcrumbs strong'); if(crumb) crumb.textContent='Overview'; };
   window.addEventListener('postpilot:posts-updated', event => { calendarPosts=Array.isArray(event.detail?.posts)?event.detail.posts:[]; renderFullCalendar(); });
 
+
+  // Instagram Analytics: display only metrics returned by the authenticated Meta Insights API.
+  const analyticsView = document.createElement('section');
+  analyticsView.id = 'postpilot-analytics-view';
+  analyticsView.hidden = true;
+  mainArea.insertBefore(analyticsView, pageContent);
+  let analyticsDays = 30;
+  let analyticsPayload = null;
+  let analyticsError = '';
+  let analyticsLoading = false;
+  const analyticsEscape = (value) => String(value ?? '').replace(/[&<>"']/g, (c) => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+  const analyticsNumber = (value) => typeof value === 'number' && Number.isFinite(value) ? new Intl.NumberFormat().format(value) : '—';
+  const analyticsMetrics = [
+    { key: 'reach', label: 'Reach', icon: 'users', hint: 'Unique accounts reached' },
+    { key: 'views', label: 'Views', icon: 'eye', hint: 'Content views' },
+    { key: 'accounts_engaged', label: 'Engaged accounts', icon: 'heart-handshake', hint: 'Accounts that engaged' },
+    { key: 'total_interactions', label: 'Interactions', icon: 'heart', hint: 'Total content interactions' },
+    { key: 'profile_views', label: 'Profile visits', icon: 'user-round', hint: 'Profile views' },
+    { key: 'profile_links_taps', label: 'Link taps', icon: 'mouse-pointer-click', hint: 'Profile link taps' },
+    { key: 'follows_and_unfollows', label: 'Follower activity', icon: 'user-plus', hint: 'Follows and unfollows' }
+  ];
+  const analyticsMetricValue = (key) => {
+    const metric = analyticsPayload?.metrics?.[key];
+    return metric?.available ? analyticsNumber(metric.total) : '—';
+  };
+  const analyticsFormatDate = (value) => {
+    if (!value) return 'Date unavailable';
+    const date = new Date(value);
+    return Number.isNaN(date.getTime()) ? 'Date unavailable' : date.toLocaleDateString(undefined, { month: 'short', day: 'numeric' });
+  };
+  const renderAnalytics = () => {
+    const payload = analyticsPayload;
+    const metricsHtml = analyticsMetrics.map(metric => {
+      const result = payload?.metrics?.[metric.key];
+      const available = Boolean(result?.available && result.total !== null);
+      return '<article class="analytics-metric-card"><div class="analytics-metric-head"><span>' + metric.label + '</span><i data-lucide="' + metric.icon + '"></i></div><strong>' + (available ? analyticsNumber(result.total) : '—') + '</strong><small>' + (available ? metric.hint : 'Not provided by Instagram for this account') + '</small></article>';
+    }).join('');
+    const series = payload?.metrics?.reach?.series?.length ? payload.metrics.reach.series : (payload?.metrics?.views?.series || []);
+    const chartValues = series.filter(item => typeof item.value === 'number');
+    const chartMax = Math.max(1, ...chartValues.map(item => item.value));
+    const chartHtml = chartValues.length
+      ? '<div class="analytics-chart-bars">' + chartValues.map((item, index) => '<div class="analytics-chart-column" title="' + analyticsEscape(item.date) + ': ' + analyticsNumber(item.value) + '"><div class="analytics-bar-track"><span style="height:' + Math.max(3, Math.round(item.value / chartMax * 100)) + '%"></span></div><small>' + (index === 0 || index === chartValues.length - 1 || index % Math.max(1, Math.floor(chartValues.length / 6)) === 0 ? analyticsEscape(analyticsFormatDate(item.date)) : '') + '</small></div>').join('') + '</div>'
+      : '<div class="analytics-empty-chart"><i data-lucide="chart-no-axes-combined"></i><strong>No trend data returned</strong><span>Instagram may not provide daily insights for this account or selected period.</span></div>';
+    const posts = Array.isArray(payload?.topPosts) ? payload.topPosts : [];
+    const topPostsHtml = posts.length ? posts.slice(0, 8).map((post, index) => {
+      const label = (post.caption || 'Instagram post').replace(/\s+/g, ' ').slice(0, 115);
+      const engagement = (typeof post.likes === 'number' ? post.likes : 0) + (typeof post.comments === 'number' ? post.comments : 0);
+      return '<article class="analytics-post-row"><span class="analytics-post-rank">' + (index + 1) + '</span><div class="analytics-post-main"><strong>' + analyticsEscape(label) + '</strong><small>' + analyticsEscape(String(post.mediaType || 'POST').replaceAll('_', ' ')) + ' · ' + analyticsEscape(analyticsFormatDate(post.timestamp)) + '</small></div><div class="analytics-post-stat"><strong>' + analyticsNumber(post.reach) + '</strong><small>Reach</small></div><div class="analytics-post-stat"><strong>' + analyticsNumber(post.likes) + '</strong><small>Likes</small></div><div class="analytics-post-stat"><strong>' + analyticsNumber(post.comments) + '</strong><small>Comments</small></div>' + (post.permalink ? '<a class="analytics-post-link" href="' + analyticsEscape(post.permalink) + '" target="_blank" rel="noopener noreferrer" aria-label="Open post"><i data-lucide="arrow-up-right"></i></a>' : '') + '</article>';
+    }).join('') : '<div class="analytics-empty-chart"><i data-lucide="images"></i><strong>No posts returned for this period</strong><span>Try a wider date range or check that Instagram insights access is enabled.</span></div>';
+    const typeTotals = {};
+    posts.forEach(post => {
+      const type = String(post.mediaType || 'POST').replaceAll('_', ' ');
+      if (!typeTotals[type]) typeTotals[type] = { count: 0, reach: 0, engagement: 0 };
+      typeTotals[type].count += 1;
+      typeTotals[type].reach += typeof post.reach === 'number' ? post.reach : 0;
+      typeTotals[type].engagement += (typeof post.likes === 'number' ? post.likes : 0) + (typeof post.comments === 'number' ? post.comments : 0);
+    });
+    const typeHtml = Object.keys(typeTotals).length ? Object.entries(typeTotals).map(([type, stats]) => '<div class="analytics-type-row"><span>' + analyticsEscape(type) + '</span><strong>' + stats.count + ' posts</strong><small>' + analyticsNumber(stats.reach) + ' reach · ' + analyticsNumber(stats.engagement) + ' likes/comments</small></div>').join('') : '<p class="analytics-muted">Content-type breakdown will appear when Instagram returns post data.</p>';
+    const timeStats = {};
+    posts.forEach(post => {
+      if (!post.timestamp) return;
+      const date = new Date(post.timestamp);
+      if (Number.isNaN(date.getTime())) return;
+      const key = date.toLocaleDateString(undefined, { weekday: 'short' }) + ' · ' + date.toLocaleTimeString(undefined, { hour: 'numeric', hour12: true });
+      if (!timeStats[key]) timeStats[key] = { score: 0, count: 0 };
+      timeStats[key].score += typeof post.reach === 'number' ? post.reach : ((post.likes || 0) + (post.comments || 0));
+      timeStats[key].count += 1;
+    });
+    const bestTime = Object.entries(timeStats).sort((a,b) => b[1].score - a[1].score)[0];
+    const timeHtml = bestTime ? '<div class="analytics-best-time"><i data-lucide="clock-3"></i><div><strong>' + analyticsEscape(bestTime[0]) + '</strong><span>Highest combined performance among the returned posts (' + bestTime[1].count + ' post' + (bestTime[1].count === 1 ? '' : 's') + '). This is an estimate, not a full audience-activity forecast.</span></div></div>' : '<p class="analytics-muted">Not enough published-post timestamps to estimate a best time yet.</p>';
+    let stateHtml = '';
+    if (analyticsLoading) stateHtml = '<div class="analytics-notice"><span class="analytics-spinner"></span> Fetching live Instagram insights…</div>';
+    else if (analyticsError) stateHtml = '<div class="analytics-notice analytics-notice-error"><i data-lucide="alert-circle"></i><div><strong>Analytics could not be loaded</strong><p>' + analyticsEscape(analyticsError) + '</p><small>If Instagram is not connected, open Overview and use “Connect Instagram Business”. Insights also require the Meta permission for account insights.</small></div><button type="button" class="secondary-button" data-analytics-retry>Try again</button></div>';
+    else if (payload?.partial) stateHtml = '<div class="analytics-notice analytics-notice-info"><i data-lucide="info"></i><span>Some metrics are unavailable for this account or date range. Unavailable metrics are shown as dashes, not estimated values.</span></div>';
+    analyticsView.innerHTML = '<div class="analytics-page-shell"><div class="analytics-page-heading"><div><div class="section-kicker">INSTAGRAM PERFORMANCE</div><h1>Analytics</h1><p>Real account and post insights from your connected Instagram account.</p></div><div class="analytics-controls"><label>Period <select id="analytics-period"><option value="7"' + (analyticsDays === 7 ? ' selected' : '') + '>Last 7 days</option><option value="30"' + (analyticsDays === 30 ? ' selected' : '') + '>Last 30 days</option><option value="90"' + (analyticsDays === 90 ? ' selected' : '') + '>Last 90 days</option></select></label><button type="button" class="primary-button" data-analytics-retry><i data-lucide="refresh-cw"></i> Refresh</button></div></div>' + stateHtml + '<div class="analytics-metric-grid">' + metricsHtml + '</div><div class="analytics-two-col"><article class="panel analytics-panel"><div class="panel-heading"><div><div class="section-kicker">DAILY TREND</div><h2>Reach over time</h2></div><span class="analytics-live-pill"><i></i> Live data</span></div>' + chartHtml + '<p class="analytics-footnote">Values are taken directly from Instagram Insights. Daily reach is not additive unique reach across the full period.</p></article><article class="panel analytics-panel"><div class="panel-heading"><div><div class="section-kicker">PUBLISHING INSIGHT</div><h2>Best-performing time</h2></div></div>' + timeHtml + '<div class="analytics-divider"></div><div class="section-kicker">CONTENT TYPE</div><div class="analytics-type-list">' + typeHtml + '</div></article></div><article class="panel analytics-panel analytics-top-posts"><div class="panel-heading"><div><div class="section-kicker">CONTENT PERFORMANCE</div><h2>Top posts</h2></div><span class="analytics-subtle">' + posts.length + ' posts returned</span></div><div class="analytics-post-list">' + topPostsHtml + '</div></article><p class="analytics-disclaimer">Metrics are subject to Instagram API availability, account type, permissions, and Meta’s reporting limits. PostPilot does not fill missing data with demo values.</p></div>';
+    if (window.lucide) window.lucide.createIcons();
+  };
+  const loadAnalytics = async () => {
+    analyticsLoading = true;
+    analyticsError = '';
+    renderAnalytics();
+    try {
+      if (typeof window.postpilotFetchInsights !== 'function') throw new Error('Analytics connection is still initializing. Please retry in a moment.');
+      const data = await window.postpilotFetchInsights(analyticsDays);
+      if (!data?.connected) throw new Error('Connect your Instagram account to load insights.');
+      analyticsPayload = data;
+    } catch (error) {
+      analyticsError = error?.message || 'Instagram insights are currently unavailable.';
+      analyticsPayload = null;
+    } finally {
+      analyticsLoading = false;
+      renderAnalytics();
+    }
+  };
+  const openAnalyticsPage = () => {
+    if (!fullCalendar.hidden) fullCalendar.hidden = true;
+    const libraryView = document.querySelector('#content-library-view');
+    if (libraryView) libraryView.hidden = true;
+    analyticsView.hidden = false;
+    pageContent.hidden = true;
+    setActiveNav('analytics');
+    const crumb = document.querySelector('.breadcrumbs strong');
+    if (crumb) crumb.textContent = 'Analytics';
+    renderAnalytics();
+    loadAnalytics();
+    window.scrollTo({ top: 0, behavior: 'smooth' });
+  };
+  analyticsView.addEventListener('change', (event) => {
+    if (event.target.id === 'analytics-period') {
+      analyticsDays = Number(event.target.value);
+      loadAnalytics();
+    }
+  });
+  analyticsView.addEventListener('click', (event) => {
+    if (event.target.closest('[data-analytics-retry]')) loadAnalytics();
+    if (event.target.closest('[data-analytics-overview]')) {
+      const overview = document.querySelector('.nav-item[data-view="overview"]');
+      if (overview) navigateSidebar('overview', overview);
+    }
+  });
+
   // Real sidebar routing: Overview is a route, not just a scroll target.
   const setActiveNav = (view) => {
     document.querySelectorAll('.nav-item').forEach(nav => nav.classList.toggle('active', nav.dataset.view === view));
@@ -298,6 +419,7 @@ document.addEventListener('DOMContentLoaded', () => {
 
   const showOverview = ({updateUrl = true} = {}) => {
     if (!fullCalendar.hidden) closeFullCalendar();
+    analyticsView.hidden = true;
     pageContent.hidden = false;
     setActiveNav('overview');
     const crumb = document.querySelector('.breadcrumbs strong');
@@ -324,7 +446,16 @@ document.addEventListener('DOMContentLoaded', () => {
       return;
     }
 
+    if (view === 'analytics') {
+      if (!fullCalendar.hidden) closeFullCalendar();
+      closeLibraryPage();
+      openAnalyticsPage();
+      if (window.location.hash !== '#analytics') history.pushState({view:'analytics'}, '', '#analytics');
+      return;
+    }
+
     if (view === 'library') {
+      analyticsView.hidden = true;
       openLibraryPage();
       if (window.location.hash !== '#library') {
         history.pushState({view:'library'}, '', '#library');
@@ -333,6 +464,7 @@ document.addEventListener('DOMContentLoaded', () => {
     }
 
     if (!fullCalendar.hidden) closeFullCalendar();
+    analyticsView.hidden = true;
     closeLibraryPage();
     setActiveNav(view);
 
