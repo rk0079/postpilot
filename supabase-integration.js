@@ -303,6 +303,7 @@
     const workspace = document.querySelector(".workspace-meta");
     if (workspace) workspace.innerHTML = "<strong>" + escapeHtml(profileData.workspace_name) + "</strong><small>Private workspace</small>";
     await loadPosts();
+    window.dispatchEvent(new CustomEvent("postpilot:auth-ready"));
     toast("Connected to Supabase — your posts can now be saved.");
   }
 
