@@ -498,6 +498,10 @@ document.addEventListener('DOMContentLoaded', () => {
 
   if (!window.location.hash) {
     history.replaceState({view:'overview'}, '', '#overview');
+  } else {
+    const initialView = window.location.hash.replace('#', '');
+    const initialItem = document.querySelector('.nav-item[data-view="' + initialView + '"]');
+    if (initialItem && initialView !== 'overview') navigateSidebar(initialView, initialItem);
   }
   document.querySelector('#full-calendar-create')?.addEventListener('click',()=>openComposerForDate(calendarDate));
   document.querySelector('#calendar-prev')?.addEventListener('click',()=>{if(calendarMode==='month')calendarDate=new Date(calendarDate.getFullYear(),calendarDate.getMonth()-1,1);else{calendarDate.setDate(calendarDate.getDate()-7);}renderFullCalendar();});
