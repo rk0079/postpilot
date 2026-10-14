@@ -465,6 +465,210 @@ document.addEventListener('DOMContentLoaded', () => {
   if (window.lucide) window.lucide.createIcons();
 
 
+
+  const workspacePageIds = ['postpilot-inbox-page','postpilot-team-page','postpilot-settings-page'];
+  let activeWorkspacePage = '';
+  let inboxTab = 'messages', inboxData = null, inboxLoading = false, inboxError = '';
+  let selectedConversationId = '', selectedCommentId = '';
+  let teamInvites = [], settingsData = null, settingsError = '';
+  const workspaceEscape = value => String(value ?? '').replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+  const workspaceDate = value => {
+    if (!value) return 'Date unavailable';
+    const date = new Date(value);
+    return Number.isNaN(date.getTime()) ? 'Date unavailable' : date.toLocaleString([], {month:'short',day:'numeric',hour:'numeric',minute:'2-digit'});
+  };
+  const workspaceNotice = (target, message, kind='info') => {
+    if (!target) return;
+    target.hidden = !message;
+    target.className = 'workspace-status workspace-status-' + kind;
+    target.innerHTML = message ? '<i data-lucide="' + (kind==='error'?'alert-circle':kind==='success'?'check-circle':'info') + '"></i><span>' + workspaceEscape(message) + '</span>' : '';
+    if (window.lucide) window.lucide.createIcons();
+  };
+  const openWorkspacePage = name => {
+    activeWorkspacePage = name;
+    if (!fullCalendar.hidden) closeFullCalendar();
+    closeLibraryPage();
+    analyticsView.hidden = true;
+    pageContent.hidden = true;
+    workspaceViews.hidden = false;
+    workspacePageIds.forEach(id => { document.getElementById(id).hidden = id !== 'postpilot-' + name + '-page'; });
+    setActiveNav(name);
+    const navItem = document.querySelector('.nav-item[data-view="' + name + '"]');
+    const crumb = document.querySelector('.breadcrumbs strong');
+    if (crumb) crumb.textContent = navItem?.querySelector('span:nth-child(2)')?.textContent || name;
+    window.scrollTo({top:0,behavior:'smooth'});
+    if (name==='inbox') loadInbox();
+    if (name==='team') loadTeam();
+    if (name==='settings') loadSettings();
+  };
+
+  const renderInbox = () => {
+    const list = document.querySelector('#inbox-list'), detail = document.querySelector('#inbox-detail'), status = document.querySelector('#inbox-status');
+    const conversations = inboxData?.conversations || [], comments = inboxData?.comments || [];
+    document.querySelector('#inbox-message-count').textContent = inboxLoading ? '…' : String(conversations.length);
+    document.querySelector('#inbox-comment-count').textContent = inboxLoading ? '…' : String(comments.length);
+    document.querySelectorAll('[data-inbox-tab]').forEach(button => button.classList.toggle('active',button.dataset.inboxTab===inboxTab));
+    if (inboxLoading) {
+      list.innerHTML='<div class="inbox-list-state"><span class="analytics-spinner"></span><p>Loading Instagram activity…</p></div>';
+      detail.innerHTML='<div class="inbox-empty"><span class="analytics-spinner"></span><strong>Syncing your inbox</strong></div>';
+      workspaceNotice(status,''); return;
+    }
+    if (inboxError) workspaceNotice(status,inboxError,'error');
+    else if (inboxData?.errors?.length) workspaceNotice(status,'Some Instagram data could not be loaded. Reconnect with the requested permissions or check Meta app approval.','info');
+    else workspaceNotice(status,'');
+    if (inboxTab==='messages') {
+      list.innerHTML = conversations.length ? conversations.map(item=>'<button type="button" class="inbox-list-item '+(item.id===selectedConversationId?'active':'')+'" data-conversation-id="'+workspaceEscape(item.id)+'"><span class="inbox-contact-avatar">'+workspaceEscape((item.participantName||'IG').slice(0,2).toUpperCase())+'</span><span class="inbox-contact-copy"><strong>'+workspaceEscape(item.participantName)+'</strong><small>'+workspaceEscape(item.latestMessage)+'</small><time>'+workspaceEscape(workspaceDate(item.updatedAt))+'</time></span></button>').join('') : '<div class="inbox-list-state"><i data-lucide="messages-square"></i><strong>No conversations returned</strong><p>Connect Instagram and grant messaging permission. This list never uses sample conversations.</p></div>';
+      const selected = conversations.find(item=>item.id===selectedConversationId) || conversations[0];
+      if (selected && selectedConversationId!==selected.id) selectedConversationId=selected.id;
+      detail.innerHTML = selected
+        ? '<div class="inbox-detail-heading"><div><strong>'+workspaceEscape(selected.participantName)+'</strong><small>Instagram conversation</small></div><span class="inbox-channel-pill"><i data-lucide="instagram"></i> Instagram</span></div><div class="inbox-message-thread">'+((selected.messages||[]).length?(selected.messages||[]).map(message=>'<div class="inbox-bubble-wrap '+(message.fromId===inboxData?.instagramUserId?'outgoing':'incoming')+'"><div class="inbox-bubble">'+workspaceEscape(message.text||'(No text content)')+'</div><time>'+workspaceEscape(workspaceDate(message.createdAt))+'</time></div>').join(''):'<div class="inbox-empty"><span>No message text was returned.</span></div>')+'</div><form id="inbox-reply-form" class="inbox-reply-form"><textarea id="inbox-reply-text" maxlength="1000" placeholder="Write a reply…" required></textarea><button type="submit" class="primary-button"><i data-lucide="send"></i> Send reply</button></form><p id="inbox-reply-status" class="form-status" role="status"></p>'
+        : '<div class="inbox-empty"><i data-lucide="messages-square"></i><strong>Messages unavailable</strong><span>When your account returns conversations, select one here.</span></div>';
+    } else {
+      list.innerHTML = comments.length ? comments.map(item=>'<button type="button" class="inbox-list-item '+(item.id===selectedCommentId?'active':'')+'" data-comment-id="'+workspaceEscape(item.id)+'"><span class="inbox-contact-avatar comment-avatar">'+workspaceEscape((item.username||'IG').slice(0,2).toUpperCase())+'</span><span class="inbox-contact-copy"><strong>@'+workspaceEscape(item.username)+'</strong><small>'+workspaceEscape(item.text)+'</small><time>'+workspaceEscape(workspaceDate(item.createdAt))+'</time></span></button>').join('') : '<div class="inbox-list-state"><i data-lucide="message-circle"></i><strong>No comments returned</strong><p>Comment access depends on your Meta permissions and account eligibility.</p></div>';
+      const selected = comments.find(item=>item.id===selectedCommentId) || comments[0];
+      if (selected && selectedCommentId!==selected.id) selectedCommentId=selected.id;
+      detail.innerHTML = selected
+        ? '<div class="inbox-detail-heading"><div><strong>@'+workspaceEscape(selected.username)+'</strong><small>Comment on your post · '+workspaceEscape(workspaceDate(selected.createdAt))+'</small></div><a class="secondary-button" href="'+workspaceEscape(selected.permalink||'https://www.instagram.com/')+'" target="_blank" rel="noopener noreferrer">Open post <i data-lucide="arrow-up-right"></i></a></div><div class="inbox-comment-context"><span class="section-kicker">COMMENT</span><p>'+workspaceEscape(selected.text)+'</p><small>'+workspaceEscape((selected.postCaption||'Your Instagram post').slice(0,180))+'</small></div><form id="inbox-comment-reply-form" class="inbox-reply-form"><label for="inbox-comment-reply-text">Reply to comment</label><textarea id="inbox-comment-reply-text" maxlength="1000" placeholder="Write a thoughtful reply…" required></textarea><button type="submit" class="primary-button"><i data-lucide="send"></i> Reply to comment</button></form><p id="inbox-reply-status" class="form-status" role="status"></p>'
+        : '<div class="inbox-empty"><i data-lucide="message-circle"></i><strong>Comments unavailable</strong><span>When comments are available, select one here to reply.</span></div>';
+    }
+    if (window.lucide) window.lucide.createIcons();
+  };
+  async function loadInbox() {
+    inboxLoading=true; inboxError=''; renderInbox();
+    try {
+      if (!window.postpilotWorkspace?.getUser()) throw new Error('Sign in to PostPilot to access your Instagram inbox.');
+      inboxData=await window.postpilotWorkspace.getInbox();
+      selectedConversationId=inboxData.conversations?.some(item=>item.id===selectedConversationId)?selectedConversationId:(inboxData.conversations?.[0]?.id||'');
+      selectedCommentId=inboxData.comments?.some(item=>item.id===selectedCommentId)?selectedCommentId:(inboxData.comments?.[0]?.id||'');
+      if(inboxData.errors?.length && /permission|scope|review|not authorized|access token|OAuth/i.test(inboxData.errors.join(' '))) inboxError='Meta permissions are missing or pending approval. Enable Instagram messaging and comment permissions in your Meta app, then reconnect Instagram in Settings.';
+    } catch(error) { inboxData=null; inboxError=error?.message||'Could not load Instagram inbox.'; }
+    finally { inboxLoading=false; renderInbox(); }
+  }
+
+  const renderTeam = () => {
+    const target=document.querySelector('#team-invites-table');
+    if(!teamInvites.length) target.innerHTML='<div class="workspace-table-empty"><i data-lucide="users"></i><strong>No invitations yet</strong><span>Save an email address above to start an invitation record.</span></div>';
+    else target.innerHTML='<div class="workspace-table-wrap"><table class="workspace-table"><thead><tr><th>EMAIL</th><th>ROLE</th><th>STATUS</th><th>CREATED</th><th>ACTIONS</th></tr></thead><tbody>'+teamInvites.map(invite=>'<tr><td><strong>'+workspaceEscape(invite.invite_email)+'</strong></td><td><select data-invite-role="'+workspaceEscape(invite.id)+'" aria-label="Role for '+workspaceEscape(invite.invite_email)+'"'+(invite.status==='revoked'?' disabled':'')+'><option value="admin"'+(invite.role==='admin'?' selected':'')+'>Admin</option><option value="editor"'+(invite.role==='editor'?' selected':'')+'>Editor</option><option value="viewer"'+(invite.role==='viewer'?' selected':'')+'>Viewer</option></select></td><td><span class="invite-status invite-status-'+workspaceEscape(invite.status)+'">'+workspaceEscape(invite.status)+'</span></td><td>'+workspaceEscape(workspaceDate(invite.created_at))+'</td><td><div class="workspace-table-actions"><button type="button" class="text-button" data-copy-invite="'+workspaceEscape(invite.id)+'">Copy details</button>'+(invite.status==='pending'?'<button type="button" class="text-button text-danger" data-revoke-invite="'+workspaceEscape(invite.id)+'">Revoke</button>':'')+'</div></td></tr>').join('')+'</tbody></table></div>';
+    if(window.lucide)window.lucide.createIcons();
+  };
+  async function loadTeam() {
+    const target=document.querySelector('#team-invites-table');
+    target.innerHTML='<div class="workspace-table-empty"><span class="analytics-spinner"></span><span>Loading invitation records…</span></div>';
+    try { if(!window.postpilotWorkspace?.getUser())throw new Error('Sign in to manage workspace invitations.'); teamInvites=await window.postpilotWorkspace.getInvites();renderTeam(); }
+    catch(error){target.innerHTML='<div class="workspace-table-empty"><i data-lucide="alert-circle"></i><strong>Could not load invitations</strong><span>'+workspaceEscape(error.message||'Please try again.')+'</span></div>';if(window.lucide)window.lucide.createIcons();}
+  }
+
+  const renderSettings = () => {
+    if(settingsError)workspaceNotice(document.querySelector('#settings-status'),settingsError,'error');else workspaceNotice(document.querySelector('#settings-status'),'');
+    if(!settingsData)return;
+    document.querySelector('#settings-full-name').value=settingsData.fullName||'';
+    document.querySelector('#settings-workspace-name').value=settingsData.workspaceName||'';
+    document.querySelector('#settings-email').value=settingsData.email||'';
+    document.querySelector('#settings-timezone').value=settingsData.timezone||'Asia/Kolkata';
+    document.querySelector('#settings-inapp-reminders').checked=Boolean(settingsData.reminders?.in_app);
+    document.querySelector('#settings-email-reminders').checked=Boolean(settingsData.reminders?.email);
+    document.querySelector('#settings-reminder-minutes').value=String(settingsData.reminders?.before_minutes||30);
+    if(window.lucide)window.lucide.createIcons();
+  };
+  async function refreshInstagramSettingsStatus() {
+    const target=document.querySelector('#settings-instagram-status'), disconnect=document.querySelector('[data-instagram-disconnect]');
+    try {
+      const result=await window.postpilotWorkspace.getInstagramStatus();
+      target.innerHTML=result.connected?'<span class="instagram-connected-dot"></span><div><strong>@'+workspaceEscape(result.username||'Instagram account connected')+'</strong><small>'+(result.refreshNeeded?'Token needs attention. Reconnect to restore access.':'Connection active · '+(result.tokenExpiresAt?'Token expiry '+workspaceEscape(workspaceDate(result.tokenExpiresAt)):'expiry not reported'))+'</small></div>':'<span class="instagram-disconnected-dot"></span><div><strong>No Instagram account connected</strong><small>Connect a professional account to enable publishing, analytics and inbox features where approved.</small></div>';
+      disconnect.hidden=!result.connected;
+    } catch(error){target.innerHTML='<span class="instagram-disconnected-dot"></span><div><strong>Connection status unavailable</strong><small>'+workspaceEscape(error.message||'Reconnect and try again.')+'</small></div>';disconnect.hidden=true;}
+  }
+  async function loadSettings() {
+    settingsError='';settingsData=null;
+    try { if(!window.postpilotWorkspace?.getUser())throw new Error('Sign in to update account and workspace settings.');settingsData=await window.postpilotWorkspace.getProfile();renderSettings();await refreshInstagramSettingsStatus(); }
+    catch(error){settingsError=error?.message||'Could not load settings.';workspaceNotice(document.querySelector('#settings-status'),settingsError,'error');}
+  }
+  async function saveSettings() {
+    if(!window.postpilotWorkspace?.getUser()){workspaceNotice(document.querySelector('#settings-status'),'Sign in to save settings.','error');return;}
+    const button=document.querySelector('[data-settings-save]'),original=button?.innerHTML;
+    if(button){button.disabled=true;button.textContent='Saving…';}
+    try {
+      const timezone=document.querySelector('#settings-timezone').value;
+      const reminders={in_app:document.querySelector('#settings-inapp-reminders').checked,email:false,before_minutes:Number(document.querySelector('#settings-reminder-minutes').value)||30};
+      await window.postpilotWorkspace.saveSettings({timezone,reminders,publishing:{require_approval:true,default_platform:'instagram'}});
+      settingsData={...(settingsData||{}),timezone,reminders,publishing:{require_approval:true,default_platform:'instagram'}};
+      workspaceNotice(document.querySelector('#settings-status'),'Settings saved successfully.','success');
+    } catch(error){workspaceNotice(document.querySelector('#settings-status'),error.message||'Could not save settings.','error');}
+    finally{if(button){button.disabled=false;button.innerHTML=original;}if(window.lucide)window.lucide.createIcons();}
+  }
+
+  workspaceViews.addEventListener('click', async event => {
+    const tab=event.target.closest('[data-inbox-tab]');
+    if(tab){inboxTab=tab.dataset.inboxTab;renderInbox();return;}
+    if(event.target.closest('[data-inbox-refresh]')){await loadInbox();return;}
+    const conversation=event.target.closest('[data-conversation-id]');
+    if(conversation){selectedConversationId=conversation.dataset.conversationId;renderInbox();return;}
+    const comment=event.target.closest('[data-comment-id]');
+    if(comment){selectedCommentId=comment.dataset.commentId;renderInbox();return;}
+    if(event.target.closest('[data-team-refresh]')){await loadTeam();return;}
+    const revoke=event.target.closest('[data-revoke-invite]');
+    if(revoke){try{await window.postpilotWorkspace.updateInvite({id:revoke.dataset.revokeInvite,status:'revoked'});teamInvites=await window.postpilotWorkspace.getInvites();renderTeam();}catch(error){window.alert(error.message||'Could not revoke invitation.');}return;}
+    const copy=event.target.closest('[data-copy-invite]');
+    if(copy){
+      const invite=teamInvites.find(item=>item.id===copy.dataset.copyInvite);if(!invite)return;
+      const text='PostPilot workspace invitation\nEmail: '+invite.invite_email+'\nRole: '+invite.role+'\nStatus: '+invite.status+'\nNote: Workspace access is not granted yet.';
+      try{await navigator.clipboard.writeText(text);workspaceNotice(document.querySelector('#team-form-status'),'Invitation details copied. Send them manually; no email was sent.','success');}
+      catch(_){window.prompt('Copy invitation details:',text);}return;
+    }
+    if(event.target.closest('[data-settings-save]')){await saveSettings();return;}
+    if(event.target.closest('[data-profile-save]')){
+      try{await window.postpilotWorkspace.saveProfile({fullName:document.querySelector('#settings-full-name').value,workspaceName:document.querySelector('#settings-workspace-name').value});workspaceNotice(document.querySelector('#settings-status'),'Profile updated successfully.','success');}
+      catch(error){workspaceNotice(document.querySelector('#settings-status'),error.message||'Could not update profile.','error');}return;
+    }
+    if(event.target.closest('[data-instagram-connect]')){try{await window.postpilotWorkspace.connectInstagram();}catch(error){workspaceNotice(document.querySelector('#settings-status'),error.message||'Could not start Instagram connection.','error');}return;}
+    if(event.target.closest('[data-instagram-disconnect]')){
+      if(!window.confirm('Disconnect Instagram from this PostPilot account?'))return;
+      try{await window.postpilotWorkspace.disconnectInstagram();await refreshInstagramSettingsStatus();workspaceNotice(document.querySelector('#settings-status'),'Instagram disconnected.','success');}
+      catch(error){workspaceNotice(document.querySelector('#settings-status'),error.message||'Could not disconnect Instagram.','error');}return;
+    }
+    if(event.target.closest('[data-settings-signout]')){if(window.confirm('Sign out of PostPilot?'))await window.postpilotWorkspace.signOut();}
+  });
+  workspaceViews.addEventListener('change',async event=>{
+    const roleSelect=event.target.closest('[data-invite-role]');
+    if(roleSelect){try{await window.postpilotWorkspace.updateInvite({id:roleSelect.dataset.inviteRole,role:roleSelect.value});teamInvites=await window.postpilotWorkspace.getInvites();renderTeam();}catch(error){window.alert(error.message||'Could not update role.');}}
+  });
+  workspaceViews.addEventListener('submit',async event=>{
+    if(event.target.id==='team-invite-form'){
+      event.preventDefault();const button=event.target.querySelector('button[type="submit]');button.disabled=true;button.textContent='Saving…';
+      try{const invite=await window.postpilotWorkspace.saveInvite({email:document.querySelector('#team-invite-email').value,role:document.querySelector('#team-invite-role').value});document.querySelector('#team-invite-email').value='';teamInvites=await window.postpilotWorkspace.getInvites();renderTeam();workspaceNotice(document.querySelector('#team-form-status'),'Invitation record saved for '+invite.invite_email+'. No email was sent and access has not been granted.','success');}
+      catch(error){workspaceNotice(document.querySelector('#team-form-status'),error.message||'Could not save invitation.','error');}
+      finally{button.disabled=false;button.innerHTML='<i data-lucide="user-plus"></i> Save invitation';if(window.lucide)window.lucide.createIcons();}
+    }
+    if(event.target.id==='inbox-reply-form'){
+      event.preventDefault();const form=event.target,button=form.querySelector('button[type="submit"]'),text=document.querySelector('#inbox-reply-text').value.trim();
+      const conversation=inboxData?.conversations?.find(item=>item.id===selectedConversationId);
+      if(!conversation?.participantId){workspaceNotice(document.querySelector('#inbox-reply-status'),'Instagram did not return a recipient ID, so this reply cannot be sent.','error');return;}
+      button.disabled=true;button.textContent='Sending…';
+      try{await window.postpilotWorkspace.replyMessage({conversationId:conversation.id,recipientId:conversation.participantId,message:text});document.querySelector('#inbox-reply-text').value='';workspaceNotice(document.querySelector('#inbox-reply-status'),'Reply sent to Instagram.','success');await loadInbox();}
+      catch(error){workspaceNotice(document.querySelector('#inbox-reply-status'),error.message||'Instagram could not send the reply. Check messaging permission and Meta approval.','error');}
+      finally{button.disabled=false;button.innerHTML='<i data-lucide="send"></i> Send reply';if(window.lucide)window.lucide.createIcons();}
+    }
+    if(event.target.id==='inbox-comment-reply-form'){
+      event.preventDefault();const button=event.target.querySelector('button[type="submit"]'),text=document.querySelector('#inbox-comment-reply-text').value.trim();button.disabled=true;button.textContent='Sending…';
+      try{await window.postpilotWorkspace.replyComment({commentId:selectedCommentId,message:text});document.querySelector('#inbox-comment-reply-text').value='';workspaceNotice(document.querySelector('#inbox-reply-status'),'Comment reply sent.','success');await loadInbox();}
+      catch(error){workspaceNotice(document.querySelector('#inbox-reply-status'),error.message||'Instagram could not send the comment reply. Check comment permissions and Meta approval.','error');}
+      finally{button.disabled=false;button.innerHTML='<i data-lucide="send"></i> Reply to comment';if(window.lucide)window.lucide.createIcons();}
+    }
+    if(event.target.id==='settings-profile-form'){event.preventDefault();try{await window.postpilotWorkspace.saveProfile({fullName:document.querySelector('#settings-full-name').value,workspaceName:document.querySelector('#settings-workspace-name').value});workspaceNotice(document.querySelector('#settings-status'),'Profile updated successfully.','success');}catch(error){workspaceNotice(document.querySelector('#settings-status'),error.message||'Could not update profile.','error');}}
+    if(event.target.id==='settings-password-form'){
+      event.preventDefault();const password=document.querySelector('#settings-new-password').value,confirm=document.querySelector('#settings-confirm-password').value,status=document.querySelector('#settings-password-status');
+      if(password!==confirm){status.textContent='Passwords do not match.';status.className='form-status form-status-error';return;}
+      const button=event.target.querySelector('button[type="submit"]');button.disabled=true;button.textContent='Updating…';
+      try{await window.postpilotWorkspace.changePassword(password);event.target.reset();status.textContent='Password updated successfully.';status.className='form-status form-status-success';}
+      catch(error){status.textContent=error.message||'Could not update password.';status.className='form-status form-status-error';}
+      finally{button.disabled=false;button.textContent='Update password';}
+    }
+  });
+  document.querySelectorAll('[data-settings-save]').forEach(button=>button.addEventListener('click',saveSettings));
+  document.querySelector('.notification-button')?.addEventListener('click',()=>openWorkspacePage('settings'));
+  document.querySelector('.invite-button')?.addEventListener('click',()=>openWorkspacePage('team'));
+
+
   // Real sidebar routing: Overview is a route, not just a scroll target.
   const setActiveNav = (view) => {
     document.querySelectorAll('.nav-item').forEach(nav => nav.classList.toggle('active', nav.dataset.view === view));
