@@ -274,6 +274,7 @@
     const profileData = savedProfile || { full_name: fullName.trim(), workspace_name: workspaceName.trim() };
     const { error: profileWriteError } = await client.from("profiles").upsert({ id: currentUser.id, full_name: profileData.full_name, workspace_name: profileData.workspace_name, updated_at: new Date().toISOString() });
     if (profileWriteError) { toast("Could not save your profile: " + profileWriteError.message); return; }
+    await loadReminderPreferences();
     const backdrop = document.querySelector("#auth-backdrop");
     if (backdrop) backdrop.style.display = "none";
     // A prior guest render may have inserted this banner; remove it as soon as auth is restored.
@@ -550,13 +551,28 @@
   }
 
   function scheduleReminder(postId, isoDate) {
-    const when = new Date(isoDate).getTime();
-    if (!Number.isFinite(when) || when <= Date.now()) {
+    const scheduledWhen = new Date(isoDate).getTime();
+    if (!Number.isFinite(scheduledWhen) || scheduledWhen <= Date.now()) {
       toast("Choose a future scheduled time to set a reminder.");
       return;
     }
+    let remindersEnabled = true, beforeMinutes = 30;
+    try {
+      remindersEnabled = localStorage.getItem("postpilot-in-app-reminders") !== "false";
+      beforeMinutes = Number(localStorage.getItem("postpilot-reminder-before-minutes") || 30);
+      if (![10,30,60,1440].includes(beforeMinutes)) beforeMinutes = 30;
+    } catch (_) {}
+    if (!remindersEnabled) {
+      toast("In-app reminders are turned off in Settings.");
+      return;
+    }
+    const when = scheduledWhen - beforeMinutes * 60000;
+    if (when <= Date.now()) {
+      toast("The reminder time has already passed. Choose a shorter lead time or schedule further ahead.");
+      return;
+    }
     const key = "postpilot-reminder:" + postId;
-    try { localStorage.setItem(key, String(when)); } catch (_) {}
+    try { localStorage.setItem(key, String(scheduledWhen)); } catch (_) {}
     const existing = reminderTimers.get(postId);
     if (existing) clearTimeout(existing);
     const delay = when - Date.now();
@@ -568,7 +584,7 @@
       if ("Notification" in window) {
         if (Notification.permission === "granted") {
           new Notification("Time to post with PostPilot", {
-            body: "Your scheduled content is ready. Open Instagram to publish it manually.",
+            body: "Your scheduled content is coming up. Open PostPilot to review it and publish manually.",
             icon: "/favicon.ico"
           });
         } else {
@@ -598,6 +614,40 @@
       console.warn("Could not restore reminders:", error);
     }
   }
+
+  async function loadReminderPreferences() {
+    if (!currentUser) return;
+    try {
+      const { data, error } = await client.from("workspace_settings")
+        .select("reminder_preferences")
+        .eq("user_id", currentUser.id)
+        .maybeSingle();
+      if (error) return;
+      const preferences = data?.reminder_preferences || { in_app: true, before_minutes: 30 };
+      const enabled = preferences.in_app !== false;
+      const beforeMinutes = [10,30,60,1440].includes(Number(preferences.before_minutes)) ? Number(preferences.before_minutes) : 30;
+      try {
+        localStorage.setItem("postpilot-in-app-reminders", enabled ? "true" : "false");
+        localStorage.setItem("postpilot-reminder-before-minutes", String(beforeMinutes));
+      } catch (_) {}
+      if (!enabled) {
+        for (const timer of reminderTimers.values()) clearTimeout(timer);
+        reminderTimers.clear();
+      } else {
+        restoreReminders();
+      }
+    } catch (_) {}
+  }
+
+  window.addEventListener("postpilot:reminder-preferences-changed", (event) => {
+    const preferences = event.detail || {};
+    if (preferences.in_app === false) {
+      for (const timer of reminderTimers.values()) clearTimeout(timer);
+      reminderTimers.clear();
+    } else {
+      restoreReminders();
+    }
+  });
 
   function ensureInstagramPanel() {
     if (document.querySelector("#instagram-connection-panel")) return;
