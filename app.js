@@ -125,6 +125,7 @@ document.addEventListener('DOMContentLoaded', () => {
 
   const libraryStatusLabel = (status) => status === 'published' ? 'Published' : status === 'scheduled' ? 'Scheduled' : 'Draft';
   const openLibraryPage = () => {
+    analyticsView.hidden = true;
     fullCalendar.hidden = true;
     pageContent.hidden = true;
     let libraryView = document.querySelector('#content-library-view');
@@ -283,6 +284,7 @@ document.addEventListener('DOMContentLoaded', () => {
     if(window.lucide) window.lucide.createIcons();
   };
   const openFullCalendar = () => {
+    analyticsView.hidden = true;
     fullCalendar.hidden = false; pageContent.hidden = true;
     const crumb=document.querySelector('.breadcrumbs strong'); if(crumb) crumb.textContent='Calendar';
     renderFullCalendar();
