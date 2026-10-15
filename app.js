@@ -177,6 +177,18 @@ document.addEventListener('DOMContentLoaded', () => {
     if (event.target.matches('.batch-post-caption')) event.target.dataset.edited = 'true';
   });
 
+  document.querySelector('#schedule-form')?.addEventListener('reset', () => {
+    selectedBulkFiles = [];
+    window.setTimeout(() => {
+      if (batchPreview) { batchPreview.hidden = true; batchPreview.innerHTML = ''; }
+      if (bulkDropZone) {
+        bulkDropZone.querySelector('strong').textContent = 'Drop multiple media files here';
+        bulkDropZone.querySelector('span').textContent = 'JPG, PNG, MP4, MOV · up to 2GB each';
+        bulkDropZone.classList.remove('dragging');
+      }
+    }, 0);
+  });
+
   // A dedicated, date-navigable calendar view backed by the user's saved Supabase posts.
   let calendarPosts = [];
   let calendarDate = new Date();
