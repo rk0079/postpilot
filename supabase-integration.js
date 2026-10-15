@@ -519,7 +519,7 @@
       schedules.push({
         dateTime: localDateTime,
         caption,
-        title: item.querySelector("[data-batch-title]")?.value.trim() || files[index].name.replace(/\\.[^.]+$/, "") || "Untitled content"
+        title: item.querySelector("[data-batch-title]")?.value.trim() || files[index].name.replace(/\.[^.]+$/, "") || "Untitled content"
       });
     }
 
@@ -546,7 +546,7 @@
         title: schedules[index].title,
         content_type: isVideo ? "reel" : "photo",
         caption,
-        hashtags: (caption.match(/#[\\p{L}\\p{N}_]+/gu) || []),
+        hashtags: (caption.match(/#[\p{L}\p{N}_]+/gu) || []),
         media_url: path,
         original_filename: file.name,
         status: "scheduled",
