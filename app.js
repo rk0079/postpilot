@@ -167,11 +167,11 @@ document.addEventListener('DOMContentLoaded', () => {
     if (eventName === 'drop') setBulkFiles(event.dataTransfer.files);
     else bulkDropZone.classList.remove('dragging');
   }));
-  document.querySelector('#bulk-start-date')?.addEventListener('change', renderBatchPreview);
-  document.querySelector('#bulk-window')?.addEventListener('change', renderBatchPreview);
-  document.querySelector('#bulk-caption')?.addEventListener('input', () => {
-    if (!batchPreview) return;
-    batchPreview.querySelectorAll('.batch-post-caption').forEach(input => { if (!input.dataset.edited) input.value = document.querySelector('#bulk-caption').value; });
+  document.addEventListener('click', event => {
+    if (event.target.closest('#apply-batch-caption')) {
+      const caption = document.querySelector('#bulk-caption')?.value || '';
+      batchPreview?.querySelectorAll('.batch-post-caption').forEach(input => { input.value = caption; input.dataset.edited = 'true'; });
+    }
   });
   batchPreview?.addEventListener('input', event => {
     if (event.target.matches('.batch-post-caption')) event.target.dataset.edited = 'true';
