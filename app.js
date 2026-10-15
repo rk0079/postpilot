@@ -4,10 +4,36 @@ document.addEventListener('DOMContentLoaded', () => {
   // Keep date inputs usable instead of leaving the original 2024 demo dates.
   const today = new Date();
   const localDate = new Date(today.getTime() - today.getTimezoneOffset() * 60000).toISOString().slice(0, 10);
-  ["#schedule-date", "#bulk-start-date"].forEach((selector) => {
-    const input = document.querySelector(selector);
-    if (input && (!input.value || input.value < localDate)) input.value = localDate;
+  const scheduleDateInputs = ["#schedule-date", "#bulk-start-date"]
+    .map((selector) => document.querySelector(selector))
+    .filter(Boolean);
+  const scheduleTimeInputs = ["#schedule-time", "#bulk-window"]
+    .map((selector) => document.querySelector(selector))
+    .filter(Boolean);
+  const localTime = () => {
+    const now = new Date();
+    return String(now.getHours()).padStart(2, "0") + ":" + String(now.getMinutes()).padStart(2, "0");
+  };
+  scheduleDateInputs.forEach((input) => {
+    input.min = localDate;
+    if (!input.value || input.value < localDate) input.value = localDate;
   });
+  const syncTimeMinimum = (dateSelector, timeSelector) => {
+    const dateInput = document.querySelector(dateSelector);
+    const timeInput = document.querySelector(timeSelector);
+    if (!dateInput || !timeInput) return;
+    timeInput.min = dateInput.value === localDate ? localTime() : "";
+  };
+  const syncAllTimeMinimums = () => {
+    syncTimeMinimum("#schedule-date", "#schedule-time");
+    syncTimeMinimum("#bulk-start-date", "#bulk-window");
+  };
+  scheduleDateInputs.forEach((input) => input.addEventListener("change", () => {
+    if (input.value < localDate) input.value = localDate;
+    syncAllTimeMinimums();
+  }));
+  scheduleTimeInputs.forEach((input) => input.addEventListener("focus", syncAllTimeMinimums));
+  syncAllTimeMinimums();
 
   const modal = document.querySelector('#modal-backdrop');
   const openButtons = [document.querySelector('#create-content'), document.querySelector('#calendar-add')];
