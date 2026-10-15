@@ -670,3 +670,30 @@ button:focus-visible, input:focus-visible, textarea:focus-visible { outline: 3px
 .week-day-column.past-date .week-time-slot {
   background: #f8f8fa;
 }
+
+
+/* Per-post bulk scheduling editor */
+.batch-preview[hidden] { display:none !important; }
+.batch-preview { display:grid; gap:12px; margin:16px 0; }
+.batch-preview-heading { display:flex; align-items:center; flex-wrap:wrap; gap:8px 12px; padding:12px; border:1px solid #e2e7f0; border-radius:10px; background:#f8faff; }
+.batch-preview-heading strong { color:#30394c; font-size:13px; }
+.batch-preview-heading span { flex:1 1 180px; color:#7c879b; font-size:11px; }
+.batch-preview-heading button, .bulk-caption-wrap button { min-height:34px; font-size:11px; }
+.batch-preview-list { display:grid; gap:12px; }
+.batch-post-item { display:grid; gap:8px; padding:14px; border:1px solid #e3e8f0; border-radius:11px; background:#fff; }
+.batch-post-file { display:flex; align-items:center; gap:10px; min-width:0; margin-bottom:4px; }
+.batch-post-number { display:grid; place-items:center; width:28px; height:28px; flex:0 0 auto; border-radius:8px; background:#edf2ff; color:#3d62cb; font-size:11px; font-weight:700; }
+.batch-post-file > div { display:grid; gap:4px; min-width:0; }
+.batch-post-file strong { overflow:hidden; color:#30394c; font-size:12px; text-overflow:ellipsis; white-space:nowrap; }
+.batch-post-file small { color:#8992a4; font-size:10px; }
+.batch-post-item .form-label { margin:2px 0 0; }
+.batch-post-item .form-input { box-sizing:border-box; width:100%; min-width:0; }
+.batch-post-item textarea { min-height:74px; resize:vertical; }
+.batch-post-item .form-two-col { gap:10px; }
+.bulk-caption-wrap { display:grid; gap:8px; margin:14px 0; }
+.bulk-caption-help { margin:0; color:#858ea0; font-size:10px; line-height:1.55; }
+@media(max-width:560px) {
+  .batch-post-item { padding:11px; }
+  .batch-preview-heading { align-items:flex-start; }
+  .batch-preview-heading button { width:100%; }
+}
