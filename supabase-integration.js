@@ -497,13 +497,32 @@
       toast("Bulk scheduling supports up to 50 files at a time.");
       return;
     }
-    const start = document.querySelector("#bulk-start-date")?.value;
-    const time = document.querySelector("#bulk-window")?.value || "19:00";
-    if (!start || new Date(start + "T" + time + ":00").getTime() <= Date.now()) {
-      toast("Choose a future start date and time. Bulk scheduling cannot begin in the past.");
+
+    const items = Array.from(document.querySelectorAll(".batch-post-item"));
+    if (items.length !== files.length) {
+      toast("Please reselect the files so every post has its own schedule.");
       return;
     }
-    const bulkCaption = document.querySelector("#bulk-caption")?.value.trim() || "";
+    const sharedCaption = document.querySelector("#bulk-caption")?.value.trim() || "";
+    const schedules = [];
+    for (let index = 0; index < files.length; index++) {
+      const item = items[index];
+      const date = item.querySelector("[data-batch-date]")?.value;
+      const time = item.querySelector("[data-batch-time]")?.value;
+      const localDateTime = date && time ? new Date(date + "T" + time + ":00") : null;
+      if (!localDateTime || !Number.isFinite(localDateTime.getTime()) || localDateTime.getTime() <= Date.now()) {
+        toast("Post " + (index + 1) + " (" + files[index].name + ") needs a future date and time.");
+        return;
+      }
+      const captionInput = item.querySelector("[data-batch-caption]");
+      const caption = captionInput?.value.trim() || (captionInput?.dataset.edited ? "" : sharedCaption);
+      schedules.push({
+        dateTime: localDateTime,
+        caption,
+        title: item.querySelector("[data-batch-title]")?.value.trim() || files[index].name.replace(/\\.[^.]+$/, "") || "Untitled content"
+      });
+    }
+
     const batchId = crypto.randomUUID();
     const uploadedPaths = [];
     const rows = [];
@@ -520,19 +539,18 @@
         return;
       }
       uploadedPaths.push(path);
-      const scheduled = new Date(start + "T" + time + ":00");
-      scheduled.setDate(scheduled.getDate() + index);
       const isVideo = file.type.startsWith("video/");
+      const caption = schedules[index].caption;
       rows.push({
         user_id: currentUser.id,
-        title: file.name.replace(/\.[^.]+$/, "") || "Untitled content",
+        title: schedules[index].title,
         content_type: isVideo ? "reel" : "photo",
-        caption: bulkCaption,
-        hashtags: (bulkCaption.match(/#[\p{L}\p{N}_]+/gu) || []),
+        caption,
+        hashtags: (caption.match(/#[\\p{L}\\p{N}_]+/gu) || []),
         media_url: path,
         original_filename: file.name,
         status: "scheduled",
-        scheduled_at: scheduled.toISOString(),
+        scheduled_at: schedules[index].dateTime.toISOString(),
         batch_id: batchId
       });
     }
@@ -546,7 +564,9 @@
     document.body.style.overflow = "";
     document.querySelector("#schedule-form").reset();
     document.querySelector("#schedule-form").classList.remove("bulk-active");
-    toast(files.length + " posts and media files saved to your calendar.");
+    const preview = document.querySelector("#batch-preview");
+    if (preview) { preview.hidden = true; preview.innerHTML = ""; }
+    toast(files.length + " posts saved with their individual captions and schedules.");
     await loadPosts();
   }
 
@@ -555,7 +575,7 @@
     if (!panel || document.querySelector("#bulk-caption")) return;
     const wrap = document.createElement("div");
     wrap.className = "bulk-caption-wrap";
-    wrap.innerHTML = '<label class="form-label" for="bulk-caption">Caption and hashtags for this batch <span class="optional">Optional</span></label><textarea class="form-input caption-input" id="bulk-caption" placeholder="One caption will be added to each selected post. Add your hashtags here too."></textarea><p class="bulk-caption-help">You can edit individual captions later. PostPilot will not publish automatically.</p>';
+    wrap.innerHTML = '<label class="form-label" for="bulk-caption">Default caption and hashtags <span class="optional">Optional</span></label><textarea class="form-input caption-input" id="bulk-caption" placeholder="Optional shared caption. You can customize every post below."></textarea><button type="button" class="secondary-button" id="apply-batch-caption">Apply this caption to all posts</button><p class="bulk-caption-help">Each post can have a different caption, date and time. Use the buttons to reuse the same caption or default schedule when you want.</p>';
     const header = panel.querySelector(".bulk-panel-header");
     if (header) header.insertAdjacentElement("afterend", wrap);
     else panel.prepend(wrap);
