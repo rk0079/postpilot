@@ -103,17 +103,79 @@ document.addEventListener('DOMContentLoaded', () => {
 
   const bulkDropZone = document.querySelector('#bulk-drop-zone');
   const bulkFileInput = document.querySelector('#bulk-file-input');
-  const handleBulkFiles = (files) => {
-    const amount = files?.length || 0;
-    if (!amount) return;
-    bulkDropZone.querySelector('strong').textContent = `${amount} media files ready to schedule`;
-    bulkDropZone.querySelector('span').textContent = 'Mixed media accepted · Ready to add to your batch';
+  const batchPreview = document.querySelector('#batch-preview');
+  let selectedBulkFiles = [];
+  const localDateString = (date) => {
+    const d = new Date(date);
+    return d.getFullYear() + '-' + String(d.getMonth()+1).padStart(2,'0') + '-' + String(d.getDate()).padStart(2,'0');
+  };
+  const escapeBatchText = (value) => String(value || '').replace(/[&<>"']/g, char => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[char]));
+  const renderBatchPreview = () => {
+    if (!batchPreview) return;
+    if (!selectedBulkFiles.length) { batchPreview.hidden = true; batchPreview.innerHTML = ''; return; }
+    const startValue = document.querySelector('#bulk-start-date')?.value || localDateString(new Date());
+    const timeValue = document.querySelector('#bulk-window')?.value || '19:00';
+    batchPreview.hidden = false;
+    batchPreview.innerHTML = `
+      <div class="batch-preview-heading"><strong>${selectedBulkFiles.length} posts in this batch</strong><span>Set each post's caption, date and time below.</span><button type="button" class="secondary-button" id="apply-batch-schedule">Apply default date/time to all</button></div>
+      <div class="batch-preview-list">${selectedBulkFiles.map((file,index) => {
+        const scheduled = new Date(startValue + 'T12:00:00');
+        scheduled.setDate(scheduled.getDate() + index);
+        const date = localDateString(scheduled);
+        const title = file.name.replace(/\.[^.]+$/, '');
+        return `<article class="batch-post-item" data-batch-index="${index}">
+          <div class="batch-post-file"><span class="batch-post-number">${index+1}</span><div><strong title="${escapeBatchText(file.name)}">${escapeBatchText(file.name)}</strong><small>${(file.size/1024/1024).toFixed(1)} MB · ${file.type.startsWith('video/')?'Video':'Image'}</small></div></div>
+          <label class="form-label">Post title</label><input class="form-input batch-post-title" data-batch-title="${index}" value="${escapeBatchText(title)}" maxlength="120" />
+          <label class="form-label">Caption and hashtags</label><textarea class="form-input caption-input batch-post-caption" data-batch-caption="${index}" placeholder="Caption just for this post…"></textarea>
+          <div class="form-two-col"><div><label class="form-label">Publish date</label><input class="form-input batch-post-date" data-batch-date="${index}" type="date" min="${localDateString(new Date())}" value="${date}" /></div><div><label class="form-label">Publish time</label><input class="form-input batch-post-time" data-batch-time="${index}" type="time" value="${timeValue}" /></div></div>
+        </article>`;
+      }).join('')}</div>`;
+    const applyDefaults = () => {
+      const start = document.querySelector('#bulk-start-date')?.value || localDateString(new Date());
+      const time = document.querySelector('#bulk-window')?.value || '19:00';
+      batchPreview.querySelectorAll('.batch-post-item').forEach((item,index) => {
+        const d = new Date(start + 'T12:00:00'); d.setDate(d.getDate()+index);
+        item.querySelector('.batch-post-date').value = localDateString(d);
+        item.querySelector('.batch-post-time').value = time;
+      });
+    };
+    batchPreview.querySelector('#apply-batch-schedule')?.addEventListener('click', applyDefaults);
+    if (window.lucide) window.lucide.createIcons();
+  };
+  const setBulkFiles = (files) => {
+    const incoming = Array.from(files || []);
+    if (!incoming.length) return;
+    const combined = [...selectedBulkFiles];
+    incoming.forEach(file => {
+      if (!combined.some(existing => existing.name === file.name && existing.size === file.size && existing.lastModified === file.lastModified)) combined.push(file);
+    });
+    if (combined.length > 50) { showToast('Bulk scheduling supports up to 50 files.'); return; }
+    selectedBulkFiles = combined;
+    const transfer = new DataTransfer();
+    selectedBulkFiles.forEach(file => transfer.items.add(file));
+    bulkFileInput.files = transfer.files;
+    bulkDropZone.querySelector('strong').textContent = `${selectedBulkFiles.length} media files ready to schedule`;
+    bulkDropZone.querySelector('span').textContent = 'Select more files to add them · Each post has its own caption and schedule';
     bulkDropZone.classList.add('dragging');
+    renderBatchPreview();
   };
   bulkDropZone.addEventListener('click', () => bulkFileInput.click());
-  bulkFileInput.addEventListener('change', (event) => handleBulkFiles(event.target.files));
+  bulkFileInput.addEventListener('change', (event) => setBulkFiles(event.target.files));
   ['dragenter', 'dragover'].forEach((eventName) => bulkDropZone.addEventListener(eventName, (event) => { event.preventDefault(); bulkDropZone.classList.add('dragging'); }));
-  ['dragleave', 'drop'].forEach((eventName) => bulkDropZone.addEventListener(eventName, (event) => { event.preventDefault(); if (eventName === 'drop') handleBulkFiles(event.dataTransfer.files); else bulkDropZone.classList.remove('dragging'); }));
+  ['dragleave', 'drop'].forEach((eventName) => bulkDropZone.addEventListener(eventName, (event) => {
+    event.preventDefault();
+    if (eventName === 'drop') setBulkFiles(event.dataTransfer.files);
+    else bulkDropZone.classList.remove('dragging');
+  }));
+  document.querySelector('#bulk-start-date')?.addEventListener('change', renderBatchPreview);
+  document.querySelector('#bulk-window')?.addEventListener('change', renderBatchPreview);
+  document.querySelector('#bulk-caption')?.addEventListener('input', () => {
+    if (!batchPreview) return;
+    batchPreview.querySelectorAll('.batch-post-caption').forEach(input => { if (!input.dataset.edited) input.value = document.querySelector('#bulk-caption').value; });
+  });
+  batchPreview?.addEventListener('input', event => {
+    if (event.target.matches('.batch-post-caption')) event.target.dataset.edited = 'true';
+  });
 
   // A dedicated, date-navigable calendar view backed by the user's saved Supabase posts.
   let calendarPosts = [];
