@@ -260,11 +260,25 @@ document.addEventListener('DOMContentLoaded', () => {
     if (window.location.hash === '#library') renderLibrary();
   });
 
+  const isPastCalendarDate = (date) => dateKey(date) < dateKey(new Date());
   const openComposerForDate = (date) => {
+    const chosenDate = new Date(date.getFullYear(), date.getMonth(), date.getDate());
+    if (isPastCalendarDate(chosenDate)) {
+      showToast('You can view past posts, but you cannot schedule new content in the past.');
+      return;
+    }
     const dateInput = document.querySelector('#schedule-date');
-    if (dateInput) dateInput.value = dateKey(date);
+    if (dateInput) {
+      dateInput.min = dateKey(new Date());
+      dateInput.value = dateKey(chosenDate);
+    }
     const timeInput = document.querySelector('#schedule-time');
-    if (timeInput) timeInput.value = '19:00';
+    if (timeInput) {
+      const now = new Date();
+      timeInput.value = dateKey(chosenDate) === dateKey(now)
+        ? String(now.getHours()).padStart(2, '0') + ':' + String(now.getMinutes()).padStart(2, '0')
+        : '19:00';
+    }
     const modal = document.querySelector('#modal-backdrop');
     if (modal) { modal.hidden = false; document.body.style.overflow = 'hidden'; }
     document.querySelector('#content-title')?.focus();
@@ -288,8 +302,10 @@ document.addEventListener('DOMContentLoaded', () => {
         const cell = document.createElement('div'); cell.className='calendar-day-cell'+(date.getMonth()!==calendarDate.getMonth()?' outside-month':'')+(dateKey(date)===todayKey?' is-today':'');
         const head=document.createElement('div'); head.className='calendar-day-head';
         const number=document.createElement('span'); number.className='calendar-day-number'; number.textContent=date.getDate(); head.appendChild(number);
-        const add=document.createElement('button'); add.type='button'; add.className='calendar-slot-add'; add.setAttribute('aria-label','Create post on '+date.toLocaleDateString()); add.innerHTML='<i data-lucide="plus"></i>'; add.addEventListener('click',()=>openComposerForDate(date)); head.appendChild(add); cell.appendChild(head);
-        postsForDay(date).forEach(post => { const card=document.createElement('button'); card.type='button'; card.className='calendar-post-chip '+(post.status||'draft'); card.title=(post.title||'Untitled content')+' · '+statusLabel(post.status); card.innerHTML='<span class="calendar-chip-time"></span><span class="calendar-chip-title"></span>'; card.querySelector('.calendar-chip-time').textContent=post.scheduled_at?new Date(post.scheduled_at).toLocaleTimeString([], {hour:'numeric',minute:'2-digit'}):''; card.querySelector('.calendar-chip-title').textContent=post.title||'Untitled content'; card.addEventListener('click',()=>openComposerForDate(date)); cell.appendChild(card); });
+        const pastDate = isPastCalendarDate(date);
+        const add=document.createElement('button'); add.type='button'; add.className='calendar-slot-add'; add.disabled=pastDate; add.title=pastDate?'Past dates are view-only':'Create post'; add.setAttribute('aria-label',pastDate?'Past date, scheduling unavailable':'Create post on '+date.toLocaleDateString()); add.innerHTML='<i data-lucide="plus"></i>'; add.addEventListener('click',()=>openComposerForDate(date)); head.appendChild(add); cell.appendChild(head);
+        if (pastDate) cell.classList.add('past-date');
+        postsForDay(date).forEach(post => { const card=document.createElement('button'); card.type='button'; card.className='calendar-post-chip '+(post.status||'draft'); card.title=(post.title||'Untitled content')+' · '+statusLabel(post.status); card.innerHTML='<span class="calendar-chip-time"></span><span class="calendar-chip-title"></span>'; card.querySelector('.calendar-chip-time').textContent=post.scheduled_at?new Date(post.scheduled_at).toLocaleTimeString([], {hour:'numeric',minute:'2-digit'}):''; card.querySelector('.calendar-chip-title').textContent=post.title||'Untitled content'; card.addEventListener('click',()=>{ if (!pastDate) openComposerForDate(date); else showToast('Past posts are view-only in the calendar.'); }); cell.appendChild(card); });
         cell.addEventListener('dblclick',()=>openComposerForDate(date)); grid.appendChild(cell);
       }
     } else {
@@ -299,9 +315,10 @@ document.addEventListener('DOMContentLoaded', () => {
       const gutter=document.createElement('div'); gutter.className='week-time-gutter'; gutter.innerHTML='<div class="week-gutter-spacer"></div>'+Array.from({length:14},(_,i)=>'<div class="week-hour-label">'+String(i+7).padStart(2,'0')+':00</div>').join(''); grid.appendChild(gutter);
       for(let i=0;i<7;i++) {
         const date=new Date(start); date.setDate(start.getDate()+i);
-        const col=document.createElement('div'); col.className='week-day-column'+(dateKey(date)===todayKey?' is-today':'');
-        const head=document.createElement('div'); head.className='week-day-heading'; head.innerHTML='<span></span><button type="button" class="calendar-slot-add" aria-label="Create post on this date"><i data-lucide="plus"></i></button>'; head.querySelector('span').textContent=date.toLocaleDateString(undefined,{weekday:'short',month:'short',day:'numeric'}); head.querySelector('button').addEventListener('click',()=>openComposerForDate(date)); col.appendChild(head);
-        for(let hour=7;hour<21;hour++){const slot=document.createElement('button');slot.type='button';slot.className='week-time-slot';slot.setAttribute('aria-label','Create post '+hour+':00 on '+date.toLocaleDateString());slot.addEventListener('click',()=>{openComposerForDate(date);const time=document.querySelector('#schedule-time');if(time)time.value=String(hour).padStart(2,'0')+':00';});col.appendChild(slot);}
+        const pastDate = isPastCalendarDate(date);
+        const col=document.createElement('div'); col.className='week-day-column'+(dateKey(date)===todayKey?' is-today':'')+(pastDate?' past-date':'');
+        const head=document.createElement('div'); head.className='week-day-heading'; head.innerHTML='<span></span><button type="button" class="calendar-slot-add" aria-label="Create post on this date"><i data-lucide="plus"></i></button>'; head.querySelector('span').textContent=date.toLocaleDateString(undefined,{weekday:'short',month:'short',day:'numeric'}); head.querySelector('button').disabled=pastDate; head.querySelector('button').title=pastDate?'Past dates are view-only':'Create post'; head.querySelector('button').addEventListener('click',()=>openComposerForDate(date)); col.appendChild(head);
+        for(let hour=7;hour<21;hour++){const slot=new Date(date.getFullYear(),date.getMonth(),date.getDate(),hour,0,0);const pastSlot=slot.getTime()<=Date.now();const slotButton=document.createElement('button');slotButton.type='button';slotButton.className='week-time-slot';slotButton.disabled=pastSlot;slotButton.setAttribute('aria-label','Create post '+hour+':00 on '+date.toLocaleDateString());slotButton.addEventListener('click',()=>{openComposerForDate(date);const time=document.querySelector('#schedule-time');if(time)time.value=String(hour).padStart(2,'0')+':00';});col.appendChild(slotButton);}
         postsForDay(date).forEach(post=>{const card=document.createElement('div');card.className='week-calendar-post '+(post.status||'draft');const title=document.createElement('strong');title.textContent=post.title||'Untitled content';const time=document.createElement('span');time.textContent=new Date(post.scheduled_at).toLocaleTimeString([],{hour:'numeric',minute:'2-digit'});card.append(time,title);col.appendChild(card);});
         grid.appendChild(col);
       }
