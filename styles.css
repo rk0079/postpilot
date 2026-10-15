@@ -652,3 +652,21 @@ button:focus-visible, input:focus-visible, textarea:focus-visible { outline: 3px
   .workspace-table th, .workspace-table td { padding:10px 8px; }
 }
 
+
+
+/* Past calendar dates remain visible for history, but cannot be used to schedule new content. */
+.calendar-slot-add:disabled,
+.week-time-slot:disabled {
+  opacity: 0.28;
+  cursor: not-allowed;
+  pointer-events: none;
+}
+.calendar-day-cell.past-date {
+  background: #f8f8fa;
+}
+.calendar-day-cell.past-date .calendar-day-number {
+  color: #a5aab5;
+}
+.week-day-column.past-date .week-time-slot {
+  background: #f8f8fa;
+}
