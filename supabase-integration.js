@@ -437,8 +437,14 @@
     const contentType = document.querySelector(".type-choice.active")?.dataset.type || "Carousel";
     const caption = document.querySelector("#content-caption")?.value.trim() || "";
     const file = document.querySelector("#file-input")?.files?.[0] || null;
+    const dateValue = document.querySelector("#schedule-date")?.value;
+    const timeValue = document.querySelector("#schedule-time")?.value || "19:00";
     const scheduledAt = getScheduledDate("#schedule-date", "#schedule-time", 60);
-    const status = "scheduled"; // Past-due posts remain scheduled and can be published after approval.
+    if (!dateValue || new Date(scheduledAt).getTime() <= Date.now()) {
+      toast("Choose a future date and time. Past scheduling is not allowed.");
+      return;
+    }
+    const status = "scheduled";approval.
     let mediaPath = null;
     if (file) {
       const safeName = file.name.normalize("NFKD").replace(/[^a-zA-Z0-9._-]+/g, "-").slice(-120) || "upload";
@@ -491,8 +497,12 @@
       toast("Bulk scheduling supports up to 50 files at a time.");
       return;
     }
-    const start = document.querySelector("#bulk-start-date")?.value || new Date().toISOString().slice(0, 10);
+    const start = document.querySelector("#bulk-start-date")?.value;
     const time = document.querySelector("#bulk-window")?.value || "19:00";
+    if (!start || new Date(start + "T" + time + ":00").getTime() <= Date.now()) {
+      toast("Choose a future start date and time. Bulk scheduling cannot begin in the past.");
+      return;
+    }
     const bulkCaption = document.querySelector("#bulk-caption")?.value.trim() || "";
     const batchId = crypto.randomUUID();
     const uploadedPaths = [];
