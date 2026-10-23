@@ -1056,10 +1056,8 @@
       try {
         buildAuth();
         const signup = Boolean(signupButton);
-        isSignup = signup;
         const switchButton = document.querySelector("#auth-switch");
-        if (switchButton) switchButton.click();
-        // Ensure the intended mode, without relying on the current toggle state.
+        // Only toggle if the form is not already in the requested mode.
         const modeIsSignup = document.querySelector("#auth-submit")?.textContent === "Create account";
         if (modeIsSignup !== signup) switchButton?.click();
         const backdrop = document.querySelector("#auth-backdrop");
