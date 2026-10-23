@@ -76,8 +76,8 @@
       }
     });
 
-    document.querySelector("#auth-switch").addEventListener("click", () => {
-      isSignup = !isSignup;
+    const setAuthMode = (signup) => {
+      isSignup = Boolean(signup);
       document.querySelector("#auth-title").textContent = isSignup ? "Create your workspace." : "Your content, in sync.";
       document.querySelector("#auth-description").textContent = isSignup
         ? "Create an account to start saving your posts and schedule."
@@ -94,7 +94,18 @@
       document.querySelector("#auth-workspace").required = isSignup;
       document.querySelector("#auth-forgot-row").hidden = isSignup;
       showAuthError("");
+    };
+    document.querySelector("#auth-switch").addEventListener("click", () => setAuthMode(!isSignup));
+    document.querySelector("#auth-login-open")?.addEventListener("click", () => {
+      setAuthMode(false);
+      document.querySelector("#auth-backdrop").style.display = "grid";
+      document.querySelector("#auth-email").focus();
     });
+    document.querySelector("#auth-signup-open")?.addEventListener("click", () => {
+      setAuthMode(true);
+      document.querySelector("#auth-backdrop").style.display = "grid";
+      document.querySelector("#auth-full-name").focus();
+    });;
 
     document.querySelector("#auth-form").addEventListener("submit", async (event) => {
       event.preventDefault();
@@ -231,6 +242,8 @@
 
   function showGuestMode() {
     currentUser = null;
+    const authEntryActions = document.querySelector("#auth-entry-actions");
+    if (authEntryActions) authEntryActions.hidden = false;
     const backdrop = document.querySelector("#auth-backdrop");
     if (backdrop) backdrop.style.display = "none";
     const profile = document.querySelector(".profile-copy");
@@ -277,6 +290,8 @@
     await loadReminderPreferences();
     const backdrop = document.querySelector("#auth-backdrop");
     if (backdrop) backdrop.style.display = "none";
+    const authEntryActions = document.querySelector("#auth-entry-actions");
+    if (authEntryActions) authEntryActions.hidden = true;
     // A prior guest render may have inserted this banner; remove it as soon as auth is restored.
     document.querySelector("#guest-preview-note")?.remove();
     const profileRow = document.querySelector(".profile-row");
