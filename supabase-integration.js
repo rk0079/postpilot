@@ -382,7 +382,7 @@
             item.append(title, details);
             const actions = document.createElement("div");
             actions.className = "post-actions calendar-post-actions";
-            actions.innerHTML = `${["scheduled","draft"].includes(post.status) ? `<button class="row-menu publish-action" type="button" data-approve-publish="${escapeHtml(post.id)}" data-scheduled-at="${escapeHtml(post.scheduled_at || "")}">Approve &amp; publish now</button>` : ""}<button class="row-menu publish-action" type="button" data-publish-manually="${escapeHtml(post.id)}" data-caption-text="${escapeHtml(post.caption || "")}" data-hashtags-text="${escapeHtml(Array.isArray(post.hashtags) ? post.hashtags.map((tag) => "#" + String(tag).replace(/^#+/, "")).join(" ") : "")}">Publish manually</button><button class="row-menu" type="button" data-copy-caption="${escapeHtml(post.id)}">Copy caption</button>${post.media_url ? `<button class="row-menu" type="button" data-save-media="${escapeHtml(post.id)}">Open media</button>` : ""}<button class="row-menu" type="button" data-open-instagram="${escapeHtml(post.id)}">Open Instagram</button>`;
+            actions.innerHTML = `<button class="row-menu publish-action" type="button" data-publish-manually="${escapeHtml(post.id)}" data-caption-text="${escapeHtml(post.caption || "")}" data-hashtags-text="${escapeHtml(Array.isArray(post.hashtags) ? post.hashtags.map((tag) => "#" + String(tag).replace(/^#+/, "")).join(" ") : "")}">Publish manually</button><button class="row-menu" type="button" data-copy-caption="${escapeHtml(post.id)}">Copy caption</button>${post.media_url ? `<button class="row-menu" type="button" data-save-media="${escapeHtml(post.id)}">Open media</button>` : ""}<button class="row-menu" type="button" data-open-instagram="${escapeHtml(post.id)}">Open Instagram</button>`;
             item.appendChild(actions);
             list.appendChild(item);
           });
@@ -411,14 +411,14 @@
           const date = post.scheduled_at ? new Date(post.scheduled_at).toLocaleString([], { dateStyle:"medium", timeStyle:"short" }) : "No date set";
           const isOverdue = post.status === "scheduled" && post.scheduled_at && new Date(post.scheduled_at).getTime() <= Date.now();
           const statusClass = post.status === "published" ? "status-published" : post.status === "draft" ? "status-draft" : "status-scheduled";
-          const statusLabel = post.status === "scheduled" && isOverdue ? "overdue · awaiting approval" : post.status === "scheduled" ? "scheduled" : post.status;
+          const statusLabel = post.status === "scheduled" && isOverdue ? "overdue · publishing queue" : post.status === "scheduled" ? "scheduled" : post.status;
           const row = document.createElement("div");
           row.className = "content-row";
           row.innerHTML = `
             <div class="content-name"><div class="table-thumb thumb-portrait"></div><span><strong>${escapeHtml(post.title)}</strong><small>${escapeHtml((post.caption || "").slice(0, 70) || "No caption added")}</small></span></div>
             <span class="type-tag">${escapeHtml(post.content_type)}</span>
-            <span class="status-tag ${statusClass}"><i></i> ${escapeHtml(statusLabel)}${post.approval_status === "pending" ? " · awaiting approval" : post.approval_status === "failed" ? " · publish failed" : ""}</span>
-            <span class="row-date">${escapeHtml(date)}</span><div class="post-actions"><button class="row-menu publish-action" type="button" data-approve-publish="${escapeHtml(post.id)}">Approve &amp; publish</button><button class="row-menu publish-action" type="button" data-publish-manually="${escapeHtml(post.id)}">Publish manually</button><button class="row-menu" type="button" data-copy-caption="${escapeHtml(post.id)}" aria-label="Copy caption">Copy caption</button>${post.media_url ? `<button class="row-menu" type="button" data-save-media="${escapeHtml(post.id)}">Open media</button>` : ""}<button class="row-menu" type="button" data-open-instagram="${escapeHtml(post.id)}">Open Instagram</button>${post.scheduled_at && post.status !== "published" ? `<button class="row-menu" type="button" data-remind-post="${escapeHtml(post.id)}" data-remind-at="${escapeHtml(post.scheduled_at)}">Remind me</button>` : ""}</div>`;
+            <span class="status-tag ${statusClass}"><i></i> ${escapeHtml(statusLabel)}${post.approval_status === "failed" ? " · publish failed" : ""}</span>
+            <span class="row-date">${escapeHtml(date)}</span><div class="post-actions"><button class="row-menu publish-action" type="button" data-publish-manually="${escapeHtml(post.id)}">Publish manually</button><button class="row-menu" type="button" data-copy-caption="${escapeHtml(post.id)}" aria-label="Copy caption">Copy caption</button>${post.media_url ? `<button class="row-menu" type="button" data-save-media="${escapeHtml(post.id)}">Open media</button>` : ""}<button class="row-menu" type="button" data-open-instagram="${escapeHtml(post.id)}">Open Instagram</button>${post.scheduled_at && post.status !== "published" ? `<button class="row-menu" type="button" data-remind-post="${escapeHtml(post.id)}" data-remind-at="${escapeHtml(post.scheduled_at)}">Remind me</button>` : ""}</div>`;
           rows.appendChild(row);
         });
       }
@@ -704,7 +704,7 @@
     panel.id = "instagram-connection-panel";
     panel.className = "panel";
     panel.style.cssText = "margin:18px 0;padding:16px 20px;display:flex;align-items:center;justify-content:space-between;gap:16px;flex-wrap:wrap";
-    panel.innerHTML = '<div><strong>Instagram publishing · Approval required</strong><p id="instagram-connection-status" style="margin:5px 0 0;color:var(--muted,#777)">Checking connection…</p><small>Posts are never auto-published without your approval.</small></div><div style="display:flex;gap:8px;flex-wrap:wrap"><button class="primary-button" id="instagram-connect-button" type="button">Connect Instagram Business</button><button id="instagram-disconnect-button" type="button" style="padding:10px 14px;border:1px solid var(--border,#ddd);border-radius:10px;background:transparent;color:var(--text,#333);font-weight:600" hidden>Disconnect</button></div>';
+    panel.innerHTML = '<div><strong>Instagram publishing · Automatic scheduling</strong><p id="instagram-connection-status" style="margin:5px 0 0;color:var(--muted,#777)">Checking connection…</p><small>Scheduled posts publish automatically at their scheduled time when your Instagram connection and Meta permissions are valid.</small></div><div style="display:flex;gap:8px;flex-wrap:wrap"><button class="primary-button" id="instagram-connect-button" type="button">Connect Instagram Business</button><button id="instagram-disconnect-button" type="button" style="padding:10px 14px;border:1px solid var(--border,#ddd);border-radius:10px;background:transparent;color:var(--text,#333);font-weight:600" hidden>Disconnect</button></div>';
     welcome.insertAdjacentElement("afterend", panel);
     panel.querySelector("#instagram-disconnect-button").addEventListener("click", async (event) => {
       if (!window.confirm("Disconnect this Instagram account from your PostPilot workspace? Your saved posts will remain.")) return;
@@ -968,7 +968,7 @@
         email: currentUser.email || "",
         timezone: settings?.timezone || "Asia/Kolkata",
         reminders: settings?.reminder_preferences || { email: false, in_app: true, before_minutes: 30 },
-        publishing: settings?.publishing_preferences || { require_approval: true, default_platform: "instagram" }
+        publishing: settings?.publishing_preferences || { require_approval: false, default_platform: "instagram" }
       };
     },
     saveProfile: async ({fullName, workspaceName}) => {
@@ -991,7 +991,7 @@
         user_id: currentUser.id,
         timezone: String(timezone || "Asia/Kolkata"),
         reminder_preferences: reminders || { email: false, in_app: true, before_minutes: 30 },
-        publishing_preferences: publishing || { require_approval: true, default_platform: "instagram" },
+        publishing_preferences: publishing || { require_approval: false, default_platform: "instagram" },
         updated_at: new Date().toISOString()
       });
       if (error) throw error;
