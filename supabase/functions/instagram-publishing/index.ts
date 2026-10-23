@@ -325,114 +325,17 @@ async function callback(url: URL) {
   return Response.redirect(`${siteUrl}/?instagram_connected=1`, 302);
 }
 
-Deno.serve(async (req: Request) => {
-  if (req.method === "OPTIONS") {
-    return new Response("ok", { headers: cors });
-  }
 
-  const url = new URL(req.url);
-
-  if (
-    req.method === "GET" &&
-    (url.searchParams.has("code") || url.searchParams.has("error"))
-  ) {
-    try {
-      return await callback(url);
-    } catch {
-      return json({ error: "Instagram authorization could not be completed." }, 500);
-    }
-  }
-
-  if (req.method !== "POST") {
-    return json({ error: "Use POST for PostPilot actions." }, 405);
-  }
-
-  try {
-    const user = await requireUser(req);
-    const body = await req.json();
-
-    if (body.action === "connect-url") {
-      const appId = Deno.env.get("INSTAGRAM_APP_ID");
-      if (!appId) {
-        return json({
-          error: "Instagram app setup is incomplete. Configure the app credentials in Supabase.",
-        }, 503);
-      }
-
-      const state = base64(crypto.getRandomValues(new Uint8Array(32)))
-        .replace(/\+/g, "-")
-        .replace(/\//g, "_")
-        .replace(/=+$/, "");
-
-      const { error } = await admin.from("instagram_oauth_states").insert({
-        state_hash: await sha256(state),
-        user_id: user.id,
-        expires_at: new Date(Date.now() + 10 * 60 * 1000).toISOString(),
-      });
-
-      if (error) throw error;
-
-      const authorize = new URL("https://www.instagram.com/oauth/authorize");
-      authorize.searchParams.set("client_id", appId);
-      authorize.searchParams.set("redirect_uri", redirectUri);
-      authorize.searchParams.set("state", state);
-      authorize.searchParams.set("response_type", "code");
-      authorize.searchParams.set(
-        "scope",
-        "instagram_business_basic,instagram_business_content_publish",
-      );
-      authorize.searchParams.set("enable_fb_login", "0");
-
-      return json({ url: authorize.toString() });
-    }
-
-    if (body.action === "status") {
-      const { data, error } = await admin
-        .from("instagram_connections")
-        .select("*")
-        .eq("user_id", user.id)
-        .maybeSingle();
-
-      if (error) throw error;
-      if (!data) return json({ connected: false, username: null, connectedAt: null, tokenExpiresAt: null });
-
-      try {
-        const refreshed = await maybeRefreshConnection(data);
-        return json({
-          connected: true,
-          username: refreshed.ig_username ?? null,
-          connectedAt: refreshed.connected_at ?? null,
-          tokenExpiresAt: refreshed.token_expires_at ?? null,
-          refreshNeeded: false,
-        });
-      } catch (refreshError) {
-        return json({
-          connected: true,
-          username: data.ig_username ?? null,
-          connectedAt: data.connected_at ?? null,
-          tokenExpiresAt: data.token_expires_at ?? null,
-          refreshNeeded: true,
-          warning: refreshError instanceof Error ? refreshError.message : "Instagram token needs attention.",
-        });
-      }
-    }
-
-    if (body.action === "disconnect") {
-      const { error } = await admin.from("instagram_connections").delete().eq("user_id", user.id);
-      if (error) throw error;
-      return json({ disconnected: true });
-    }
-
-    if (body.action === "approve-publish") {
-      if (!body.postId) {
+async function publishPostForUser(userId: string, postId: string) {
+      if (!postId) {
         return json({ error: "postId is required." }, 400);
       }
 
       const { data: post, error: postError } = await admin
         .from("posts")
         .select("*")
-        .eq("id", body.postId)
-        .eq("user_id", user.id)
+        .eq("id", postId)
+        .eq("user_id", userId)
         .maybeSingle();
 
       if (postError || !post) {
@@ -452,7 +355,7 @@ Deno.serve(async (req: Request) => {
       const { data: initialConnection, error: connectionError } = await admin
         .from("instagram_connections")
         .select("*")
-        .eq("user_id", user.id)
+        .eq("user_id", userId)
         .maybeSingle();
 
       if (connectionError) throw connectionError;
@@ -505,7 +408,7 @@ Deno.serve(async (req: Request) => {
       await admin.from("posts").update({
         approval_status: "publishing",
         publish_error: null,
-      }).eq("id", post.id).eq("user_id", user.id);
+      }).eq("id", post.id).eq("user_id", userId);
 
       try {
         // Confirm Instagram can fetch the image/video URL before creating a container.
@@ -592,10 +495,10 @@ Deno.serve(async (req: Request) => {
           instagram_media_id: String(published.id),
           published_at: new Date().toISOString(),
           publish_error: null,
-        }).eq("id", post.id).eq("user_id", user.id);
+        }).eq("id", post.id).eq("user_id", userId);
 
         await admin.from("instagram_publish_logs").insert({
-          user_id: user.id,
+          user_id: userId,
           post_id: post.id,
           action: "approve-publish",
           outcome: "success",
@@ -612,10 +515,10 @@ Deno.serve(async (req: Request) => {
         await admin.from("posts").update({
           approval_status: "failed",
           publish_error: message,
-        }).eq("id", post.id).eq("user_id", user.id);
+        }).eq("id", post.id).eq("user_id", userId);
 
         await admin.from("instagram_publish_logs").insert({
-          user_id: user.id,
+          user_id: userId,
           post_id: post.id,
           action: "approve-publish",
           outcome: "failed",
@@ -624,6 +527,124 @@ Deno.serve(async (req: Request) => {
 
         return json({ error: message, published: false }, 502);
       }
+}
+
+Deno.serve(async (req: Request) => {
+  if (req.method === "OPTIONS") {
+    return new Response("ok", { headers: cors });
+  }
+
+  const url = new URL(req.url);
+
+  if (
+    req.method === "GET" &&
+    (url.searchParams.has("code") || url.searchParams.has("error"))
+  ) {
+    try {
+      return await callback(url);
+    } catch {
+      return json({ error: "Instagram authorization could not be completed." }, 500);
+    }
+  }
+
+  if (req.method !== "POST") {
+    return json({ error: "Use POST for PostPilot actions." }, 405);
+  }
+
+  try {
+    const body = await req.json();
+    if (body.action === "publish-due") {
+      const supplied = req.headers.get("x-postpilot-cron-secret") ?? "";
+      const digest = await sha256(supplied);
+      const { data: secretRow, error: secretError } = await admin.from("postpilot_scheduler_secrets").select("secret_hash").eq("id", "primary").maybeSingle();
+      if (secretError || !secretRow || digest !== secretRow.secret_hash) return json({ error: "Unauthorized scheduler request." }, 401);
+      const { data: duePosts, error: dueError } = await admin.from("posts").select("id,user_id").eq("status", "scheduled").neq("approval_status", "failed").neq("approval_status", "publishing").lte("scheduled_at", new Date().toISOString()).order("scheduled_at", { ascending: true }).limit(20);
+      if (dueError) throw dueError;
+      const results = [];
+      for (const due of (duePosts ?? [])) {
+        const response = await publishPostForUser(due.user_id, due.id);
+        const result = await response.json();
+        results.push({ postId: due.id, status: response.status, ...result });
+      }
+      return json({ processed: results.length, results });
+    }
+    const user = await requireUser(req);
+
+    if (body.action === "connect-url") {
+      const appId = Deno.env.get("INSTAGRAM_APP_ID");
+      if (!appId) {
+        return json({
+          error: "Instagram app setup is incomplete. Configure the app credentials in Supabase.",
+        }, 503);
+      }
+
+      const state = base64(crypto.getRandomValues(new Uint8Array(32)))
+        .replace(/\+/g, "-")
+        .replace(/\//g, "_")
+        .replace(/=+$/, "");
+
+      const { error } = await admin.from("instagram_oauth_states").insert({
+        state_hash: await sha256(state),
+        user_id: user.id,
+        expires_at: new Date(Date.now() + 10 * 60 * 1000).toISOString(),
+      });
+
+      if (error) throw error;
+
+      const authorize = new URL("https://www.instagram.com/oauth/authorize");
+      authorize.searchParams.set("client_id", appId);
+      authorize.searchParams.set("redirect_uri", redirectUri);
+      authorize.searchParams.set("state", state);
+      authorize.searchParams.set("response_type", "code");
+      authorize.searchParams.set(
+        "scope",
+        "instagram_business_basic,instagram_business_content_publish",
+      );
+      authorize.searchParams.set("enable_fb_login", "0");
+
+      return json({ url: authorize.toString() });
+    }
+
+    if (body.action === "status") {
+      const { data, error } = await admin
+        .from("instagram_connections")
+        .select("*")
+        .eq("user_id", user.id)
+        .maybeSingle();
+
+      if (error) throw error;
+      if (!data) return json({ connected: false, username: null, connectedAt: null, tokenExpiresAt: null });
+
+      try {
+        const refreshed = await maybeRefreshConnection(data);
+        return json({
+          connected: true,
+          username: refreshed.ig_username ?? null,
+          connectedAt: refreshed.connected_at ?? null,
+          tokenExpiresAt: refreshed.token_expires_at ?? null,
+          refreshNeeded: false,
+        });
+      } catch (refreshError) {
+        return json({
+          connected: true,
+          username: data.ig_username ?? null,
+          connectedAt: data.connected_at ?? null,
+          tokenExpiresAt: data.token_expires_at ?? null,
+          refreshNeeded: true,
+          warning: refreshError instanceof Error ? refreshError.message : "Instagram token needs attention.",
+        });
+      }
+    }
+
+    if (body.action === "disconnect") {
+      const { error } = await admin.from("instagram_connections").delete().eq("user_id", user.id);
+      if (error) throw error;
+      return json({ disconnected: true });
+    }
+
+    if (body.action === "approve-publish") {
+      if (!body.postId) return json({ error: "postId is required." }, 400);
+      return await publishPostForUser(user.id, String(body.postId));
     }
 
     return json({ error: "Unknown action." }, 400);
