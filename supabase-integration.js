@@ -382,7 +382,7 @@
             item.append(title, details);
             const actions = document.createElement("div");
             actions.className = "post-actions calendar-post-actions";
-            actions.innerHTML = `<button class="row-menu publish-action" type="button" data-publish-manually="${escapeHtml(post.id)}" data-caption-text="${escapeHtml(post.caption || "")}" data-hashtags-text="${escapeHtml(Array.isArray(post.hashtags) ? post.hashtags.map((tag) => "#" + String(tag).replace(/^#+/, "")).join(" ") : "")}">Publish manually</button><button class="row-menu" type="button" data-copy-caption="${escapeHtml(post.id)}">Copy caption</button>${post.media_url ? `<button class="row-menu" type="button" data-save-media="${escapeHtml(post.id)}">Open media</button>` : ""}<button class="row-menu" type="button" data-open-instagram="${escapeHtml(post.id)}">Open Instagram</button>`;
+            actions.innerHTML = `${post.approval_status === "failed" ? `<button class="row-menu publish-action" type="button" data-approve-publish="${escapeHtml(post.id)}" data-scheduled-at="${escapeHtml(post.scheduled_at || "")}">Retry publishing</button>` : ""}<button class="row-menu publish-action" type="button" data-publish-manually="${escapeHtml(post.id)}" data-caption-text="${escapeHtml(post.caption || "")}" data-hashtags-text="${escapeHtml(Array.isArray(post.hashtags) ? post.hashtags.map((tag) => "#" + String(tag).replace(/^#+/, "")).join(" ") : "")}">Publish manually</button><button class="row-menu" type="button" data-copy-caption="${escapeHtml(post.id)}">Copy caption</button>${post.media_url ? `<button class="row-menu" type="button" data-save-media="${escapeHtml(post.id)}">Open media</button>` : ""}<button class="row-menu" type="button" data-open-instagram="${escapeHtml(post.id)}">Open Instagram</button>`;
             item.appendChild(actions);
             list.appendChild(item);
           });
@@ -418,7 +418,7 @@
             <div class="content-name"><div class="table-thumb thumb-portrait"></div><span><strong>${escapeHtml(post.title)}</strong><small>${escapeHtml((post.caption || "").slice(0, 70) || "No caption added")}</small></span></div>
             <span class="type-tag">${escapeHtml(post.content_type)}</span>
             <span class="status-tag ${statusClass}"><i></i> ${escapeHtml(statusLabel)}${post.approval_status === "failed" ? " · publish failed" : ""}</span>
-            <span class="row-date">${escapeHtml(date)}</span><div class="post-actions"><button class="row-menu publish-action" type="button" data-publish-manually="${escapeHtml(post.id)}">Publish manually</button><button class="row-menu" type="button" data-copy-caption="${escapeHtml(post.id)}" aria-label="Copy caption">Copy caption</button>${post.media_url ? `<button class="row-menu" type="button" data-save-media="${escapeHtml(post.id)}">Open media</button>` : ""}<button class="row-menu" type="button" data-open-instagram="${escapeHtml(post.id)}">Open Instagram</button>${post.scheduled_at && post.status !== "published" ? `<button class="row-menu" type="button" data-remind-post="${escapeHtml(post.id)}" data-remind-at="${escapeHtml(post.scheduled_at)}">Remind me</button>` : ""}</div>`;
+            <span class="row-date">${escapeHtml(date)}</span><div class="post-actions">${post.approval_status === "failed" ? `<button class="row-menu publish-action" type="button" data-approve-publish="${escapeHtml(post.id)}" data-scheduled-at="${escapeHtml(post.scheduled_at || "")}">Retry publishing</button>` : ""}<button class="row-menu publish-action" type="button" data-publish-manually="${escapeHtml(post.id)}">Publish manually</button><button class="row-menu" type="button" data-copy-caption="${escapeHtml(post.id)}" aria-label="Copy caption">Copy caption</button>${post.media_url ? `<button class="row-menu" type="button" data-save-media="${escapeHtml(post.id)}">Open media</button>` : ""}<button class="row-menu" type="button" data-open-instagram="${escapeHtml(post.id)}">Open Instagram</button>${post.scheduled_at && post.status !== "published" ? `<button class="row-menu" type="button" data-remind-post="${escapeHtml(post.id)}" data-remind-at="${escapeHtml(post.scheduled_at)}">Remind me</button>` : ""}</div>`;
           rows.appendChild(row);
         });
       }
@@ -793,10 +793,10 @@
         const isFuture = scheduledAt && new Date(scheduledAt).getTime() > Date.now();
         const prompt = isFuture
           ? "This post is scheduled for " + new Date(scheduledAt).toLocaleString() + ". Approve & publish now will publish it immediately, not on that future date. Continue?"
-          : "This post is due or overdue. Approve & publish it to Instagram now? It will publish publicly if Meta accepts it.";
+          : "Retry publishing this post to Instagram now? It will publish publicly if Meta accepts it.";
         if (!window.confirm(prompt)) return;
         approveButton.disabled = true;
-        approveButton.textContent = "Publishing…";
+        approveButton.textContent = "Retrying…";
         try {
           const { data, error } = await client.functions.invoke("instagram-publishing", { body: { action: "approve-publish", postId: approveButton.dataset.approvePublish } });
           if (error) throw error;
@@ -806,7 +806,7 @@
         } catch (error) {
           toast("Not published: " + (error.message || "Instagram connection or Meta setup is incomplete."));
           approveButton.disabled = false;
-          approveButton.textContent = "Approve & publish now";
+          approveButton.textContent = "Retry publishing";
         }
         return;
       }
