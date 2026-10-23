@@ -716,13 +716,13 @@ document.addEventListener('DOMContentLoaded', () => {
     try {
       const timezone=document.querySelector('#settings-timezone').value;
       const reminders={in_app:document.querySelector('#settings-inapp-reminders').checked,email:false,before_minutes:Number(document.querySelector('#settings-reminder-minutes').value)||30};
-      await window.postpilotWorkspace.saveSettings({timezone,reminders,publishing:{require_approval:true,default_platform:'instagram'}});
+      await window.postpilotWorkspace.saveSettings({timezone,reminders,publishing:{require_approval:false,default_platform:'instagram'}});
       try {
         localStorage.setItem('postpilot-in-app-reminders', reminders.in_app ? 'true' : 'false');
         localStorage.setItem('postpilot-reminder-before-minutes', String(reminders.before_minutes));
       } catch (_) {}
       window.dispatchEvent(new CustomEvent('postpilot:reminder-preferences-changed', {detail:reminders}));
-      settingsData={...(settingsData||{}),timezone,reminders,publishing:{require_approval:true,default_platform:'instagram'}};
+      settingsData={...(settingsData||{}),timezone,reminders,publishing:{require_approval:false,default_platform:'instagram'}};
       workspaceNotice(document.querySelector('#settings-status'),'Settings saved successfully.','success');
     } catch(error){workspaceNotice(document.querySelector('#settings-status'),error.message||'Could not save settings.','error');}
     finally{if(button){button.disabled=false;button.innerHTML=original;}if(window.lucide)window.lucide.createIcons();}
