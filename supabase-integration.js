@@ -1045,6 +1045,33 @@
 
   document.addEventListener("DOMContentLoaded", async () => {
     buildAuth();
+
+    // Delegate account-entry clicks at document level so the login controls keep
+    // working even if the header is re-rendered after initialization.
+    document.addEventListener("click", (event) => {
+      const loginButton = event.target.closest("#auth-login-open");
+      const signupButton = event.target.closest("#auth-signup-open");
+      if (!loginButton && !signupButton) return;
+      event.preventDefault();
+      try {
+        buildAuth();
+        const signup = Boolean(signupButton);
+        isSignup = signup;
+        const switchButton = document.querySelector("#auth-switch");
+        if (switchButton) switchButton.click();
+        // Ensure the intended mode, without relying on the current toggle state.
+        const modeIsSignup = document.querySelector("#auth-submit")?.textContent === "Create account";
+        if (modeIsSignup !== signup) switchButton?.click();
+        const backdrop = document.querySelector("#auth-backdrop");
+        if (backdrop) backdrop.style.display = "grid";
+        const target = document.querySelector(signup ? "#auth-full-name" : "#auth-email");
+        target?.focus();
+      } catch (error) {
+        console.error("PostPilot login window failed to open:", error);
+        toast("Could not open sign in. Refresh the page and try again.");
+      }
+    });
+
     addBulkCaptionField();
     bindRealScheduling();
     bindPostActions();
