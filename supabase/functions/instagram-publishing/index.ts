@@ -561,10 +561,18 @@ Deno.serve(async (req: Request) => {
       const { data: duePosts, error: dueError } = await admin.from("posts").select("id,user_id").eq("status", "scheduled").neq("approval_status", "failed").neq("approval_status", "publishing").lte("scheduled_at", new Date().toISOString()).order("scheduled_at", { ascending: true }).limit(20);
       if (dueError) throw dueError;
       const results = [];
-      for (const due of (duePosts ?? [])) {
-        const response = await publishPostForUser(due.user_id, due.id);
-        const result = await response.json();
-        results.push({ postId: due.id, status: response.status, ...result });
+      if ((duePosts ?? []).length) {
+        const dueUserIds = [...new Set((duePosts ?? []).map((post: any) => post.user_id))];
+        const { data: connectedUsers, error: connectionListError } = await admin
+          .from("instagram_connections").select("user_id").in("user_id", dueUserIds);
+        if (connectionListError) throw connectionListError;
+        const connectedUserIds = new Set((connectedUsers ?? []).map((row: any) => row.user_id));
+        for (const due of (duePosts ?? [])) {
+          if (!connectedUserIds.has(due.user_id)) continue;
+          const response = await publishPostForUser(due.user_id, due.id);
+          const result = await response.json();
+          results.push({ postId: due.id, status: response.status, ...result });
+        }
       }
       return json({ processed: results.length, results });
     }
