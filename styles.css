@@ -697,3 +697,25 @@ button:focus-visible, input:focus-visible, textarea:focus-visible { outline: 3px
   .batch-preview-heading { align-items:flex-start; }
   .batch-preview-heading button { width:100%; }
 }
+
+/* Platform chooser: Instagram / LinkedIn */
+.platform-selector { margin:0 0 24px; padding:18px 20px; border:1px solid var(--line); border-radius:16px; background:#fff; }
+.platform-selector-head h2 { margin:5px 0 4px; font-family:"Space Grotesk",sans-serif; font-size:18px; letter-spacing:-.5px; color:#302d46; }
+.platform-selector-head p { margin:0; color:#8d8a9b; font-size:11px; }
+.platform-options { display:grid; grid-template-columns:repeat(2,minmax(0,1fr)); gap:12px; margin-top:15px; }
+.platform-option { display:flex; align-items:center; gap:12px; width:100%; padding:13px 14px; border:1px solid #e8e6ee; border-radius:12px; background:#fff; text-align:left; color:var(--ink); transition:all .18s ease; }
+.platform-option:hover { border-color:#c9c4e8; background:#faf9ff; }
+.platform-option.active { border-color:#8172d7; background:#f6f4ff; box-shadow:0 0 0 2px rgba(105,85,201,.08); }
+.platform-logo { width:38px; height:38px; display:grid; place-items:center; border-radius:10px; flex:0 0 auto; }
+.instagram-logo { background:#f2edff; color:#8659c8; }
+.linkedin-logo { background:#eaf3ff; color:#2767b2; }
+.platform-logo svg { width:19px; height:19px; }
+.platform-option > span:nth-child(2) { display:grid; gap:4px; flex:1; }
+.platform-option strong { font-size:12px; font-weight:700; }
+.platform-option small { font-size:10px; color:#9290a0; }
+.platform-check { color:#a5a2b2; }
+.platform-check svg { width:17px; height:17px; }
+.platform-option.active .platform-check { color:#7160cf; }
+.platform-selection-note { margin:12px 0 0; color:#817f91; font-size:10px; }
+.platform-selection-note.linkedin-note { color:#8b6131; padding:9px 11px; border-radius:8px; background:#fff8ed; }
+@media(max-width:760px) { .platform-selector { padding:15px; } .platform-options { grid-template-columns:1fr; gap:8px; } }
