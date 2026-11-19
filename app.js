@@ -4,6 +4,10 @@ document.addEventListener('DOMContentLoaded', () => {
   const platformTitle = document.querySelector('#platform-selector-title');
   const platformHeading = document.querySelector('.welcome-row h1');
   const platformCopy = document.querySelector('.welcome-copy');
+  const linkedinPanel = document.querySelector('#linkedin-workspace');
+  const overviewElements = ['.welcome-row','.metric-grid','.workspace-grid','.bottom-grid'].map(sel=>document.querySelector(sel)).filter(Boolean);
+  const today = new Date();
+  const localDate = new Date(today.getTime()-today.getTimezoneOffset()*60000).toISOString().slice(0,10);
   const activePlatform = (() => { try { return localStorage.getItem('postpilot-platform') || 'instagram'; } catch (_) { return 'instagram'; } })();
   const setPlatform = (platform) => {
     const isLinkedIn = platform === 'linkedin';
@@ -13,15 +17,59 @@ document.addEventListener('DOMContentLoaded', () => {
       card.setAttribute('aria-pressed', active ? 'true' : 'false');
     });
     try { localStorage.setItem('postpilot-platform', platform); } catch (_) {}
-    if (platformTitle) platformTitle.textContent = isLinkedIn ? 'What do you want to automate on LinkedIn?' : 'What do you want to automate on Instagram?';
+    if (platformTitle) platformTitle.textContent = 'What do you want to automate?';
     if (platformHeading) platformHeading.innerHTML = isLinkedIn ? 'Plan your LinkedIn content <span class="wave">✦</span>' : 'Plan your Instagram content <span class="wave">✦</span>';
-    if (platformCopy) platformCopy.textContent = isLinkedIn ? 'Organize professional posts and plan your LinkedIn content. Publishing connection is not set up yet.' : 'You’re all caught up. Here’s what’s moving across your content engine.';
+    if (platformCopy) platformCopy.textContent = isLinkedIn ? 'Create drafts and organize a LinkedIn posting plan.' : 'You’re all caught up. Here’s what’s moving across your content engine.';
     if (platformNote) {
-      platformNote.textContent = isLinkedIn ? 'LinkedIn selected · Draft planning only for now. LinkedIn publishing is not connected yet.' : 'Instagram selected · Your existing Instagram workflow is unchanged.';
+      platformNote.textContent = isLinkedIn ? 'LinkedIn workspace selected.' : 'Instagram workspace selected.';
       platformNote.classList.toggle('linkedin-note', isLinkedIn);
     }
+    if(linkedinPanel) linkedinPanel.hidden = !isLinkedIn;
+    overviewElements.forEach(el=>el.hidden=isLinkedIn);
+    if(isLinkedIn) renderLinkedInPosts();
   };
   platformCards.forEach(card => card.addEventListener('click', () => setPlatform(card.dataset.platform)));
+
+  // LinkedIn planner: local drafts and scheduled planning records (not connected publishing).
+  const LI_KEY='postpilot-linkedin-planner-v1';
+  const readPosts=()=>{try{return JSON.parse(localStorage.getItem(LI_KEY)||'[]')}catch(_){return []}};
+  const savePosts=(posts)=>{try{localStorage.setItem(LI_KEY,JSON.stringify(posts));return true}catch(_){return false}};
+  const safeText=(value)=>String(value||'').replace(/[&<>"']/g,ch=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[ch]));
+  const liDate=document.querySelector('#li-date'); if(liDate){liDate.min=localDate;if(!liDate.value||liDate.value<localDate)liDate.value=localDate;}
+  const textArea=document.querySelector('#li-text'),charCount=document.querySelector('#li-char-count');
+  textArea?.addEventListener('input',()=>{if(charCount)charCount.textContent=String(textArea.value.length)});
+  const clearComposer=()=>{document.querySelector('#li-title').value='';document.querySelector('#li-text').value='';document.querySelector('#li-date').value=localDate;document.querySelector('#li-time').value='10:00';if(charCount)charCount.textContent='0';};
+  const addPost=(status)=>{
+    const title=document.querySelector('#li-title').value.trim()||'LinkedIn post';
+    const content=document.querySelector('#li-text').value.trim();
+    if(!content){alert('Write your LinkedIn post text first.');return;}
+    const date=document.querySelector('#li-date').value||localDate,time=document.querySelector('#li-time').value||'10:00';
+    const posts=readPosts();posts.unshift({id:Date.now().toString(36)+Math.random().toString(36).slice(2,7),title,text:content,date,time,status,createdAt:new Date().toISOString()});
+    if(!savePosts(posts)){alert('Could not save in this browser. Storage may be full.');return;}
+    clearComposer();renderLinkedInPosts();
+  };
+  document.querySelector('#li-save-draft')?.addEventListener('click',()=>addPost('draft'));
+  document.querySelector('#li-schedule')?.addEventListener('click',()=>addPost('scheduled'));
+  document.querySelector('#li-bulk-add')?.addEventListener('click',()=>{
+    const raw=document.querySelector('#li-bulk-input').value.trim();if(!raw){alert('Paste posts into the bulk planner first.');return;}
+    const rows=raw.split(/\\r?\\n/).map(line=>line.trim()).filter(Boolean),posts=readPosts();let added=0;
+    rows.forEach(line=>{const parts=line.split('|').map(x=>x.trim());if(parts.length<2||!parts[1])return;posts.unshift({id:Date.now().toString(36)+Math.random().toString(36).slice(2,7)+added,title:parts[0]||'LinkedIn post',text:parts[1],date:parts[2]||localDate,time:parts[3]||'10:00',status:'scheduled',createdAt:new Date().toISOString()});added++;});
+    if(!added){alert('No valid rows found. Use Title | Post text | YYYY-MM-DD | HH:MM');return;}
+    if(!savePosts(posts)){alert('Could not save the bulk posts in this browser.');return;}
+    document.querySelector('#li-bulk-input').value='';renderLinkedInPosts();
+  });
+  document.querySelector('#li-clear-queue')?.addEventListener('click',()=>{if(!readPosts().length)return;if(confirm('Delete all LinkedIn planner posts saved in this browser?')){savePosts([]);renderLinkedInPosts();}});
+  document.querySelector('#li-post-list')?.addEventListener('click',event=>{
+    const button=event.target.closest('[data-li-delete]');if(!button)return;savePosts(readPosts().filter(post=>post.id!==button.dataset.liDelete));renderLinkedInPosts();
+  });
+  function renderLinkedInPosts(){
+    const posts=readPosts(),drafts=posts.filter(p=>p.status==='draft').length,scheduled=posts.filter(p=>p.status==='scheduled').length;
+    const total=document.querySelector('#li-total'),draftCount=document.querySelector('#li-drafts'),schedCount=document.querySelector('#li-scheduled');
+    if(total)total.textContent=posts.length;if(draftCount)draftCount.textContent=drafts;if(schedCount)schedCount.textContent=scheduled;
+    const list=document.querySelector('#li-post-list');if(!list)return;
+    if(!posts.length){list.innerHTML='<div class="linkedin-empty">No LinkedIn posts yet. Create a draft or add posts using the bulk planner.</div>';return;}
+    list.innerHTML=posts.map(post=>'<article class="linkedin-post-card"><div class="linkedin-post-card-top"><strong>'+safeText(post.title)+'</strong><span class="linkedin-post-badge '+post.status+'">'+(post.status==='draft'?'Draft':'Scheduled')+'</span></div><p>'+safeText(post.text)+'</p><div class="linkedin-post-meta">'+(post.status==='scheduled'?'Planned for ':'Draft · ')+(post.status==='scheduled'?safeText(post.date)+' at '+safeText(post.time):safeText(post.date))+'</div><button type="button" class="row-menu" data-li-delete="'+safeText(post.id)+'">Delete</button></article>').join('');
+  }
   setPlatform(activePlatform === 'linkedin' ? 'linkedin' : 'instagram');
 });
 document.addEventListener('DOMContentLoaded', () => {
