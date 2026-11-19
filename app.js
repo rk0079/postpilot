@@ -52,7 +52,7 @@ document.addEventListener('DOMContentLoaded', () => {
   document.querySelector('#li-schedule')?.addEventListener('click',()=>addPost('scheduled'));
   document.querySelector('#li-bulk-add')?.addEventListener('click',()=>{
     const raw=document.querySelector('#li-bulk-input').value.trim();if(!raw){alert('Paste posts into the bulk planner first.');return;}
-    const rows=raw.split(/\\r?\\n/).map(line=>line.trim()).filter(Boolean),posts=readPosts();let added=0;
+    const rows=raw.split(/\r?\n/).map(line=>line.trim()).filter(Boolean),posts=readPosts();let added=0;
     rows.forEach(line=>{const parts=line.split('|').map(x=>x.trim());if(parts.length<2||!parts[1])return;posts.unshift({id:Date.now().toString(36)+Math.random().toString(36).slice(2,7)+added,title:parts[0]||'LinkedIn post',text:parts[1],date:parts[2]||localDate,time:parts[3]||'10:00',status:'scheduled',createdAt:new Date().toISOString()});added++;});
     if(!added){alert('No valid rows found. Use Title | Post text | YYYY-MM-DD | HH:MM');return;}
     if(!savePosts(posts)){alert('Could not save the bulk posts in this browser.');return;}
