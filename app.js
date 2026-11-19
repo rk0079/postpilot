@@ -1,4 +1,30 @@
 document.addEventListener('DOMContentLoaded', () => {
+  const platformCards = document.querySelectorAll('.platform-option');
+  const platformNote = document.querySelector('#platform-selection-note');
+  const platformTitle = document.querySelector('#platform-selector-title');
+  const platformHeading = document.querySelector('.welcome-row h1');
+  const platformCopy = document.querySelector('.welcome-copy');
+  const activePlatform = (() => { try { return localStorage.getItem('postpilot-platform') || 'instagram'; } catch (_) { return 'instagram'; } })();
+  const setPlatform = (platform) => {
+    const isLinkedIn = platform === 'linkedin';
+    platformCards.forEach(card => {
+      const active = card.dataset.platform === platform;
+      card.classList.toggle('active', active);
+      card.setAttribute('aria-pressed', active ? 'true' : 'false');
+    });
+    try { localStorage.setItem('postpilot-platform', platform); } catch (_) {}
+    if (platformTitle) platformTitle.textContent = isLinkedIn ? 'What do you want to automate on LinkedIn?' : 'What do you want to automate on Instagram?';
+    if (platformHeading) platformHeading.innerHTML = isLinkedIn ? 'Plan your LinkedIn content <span class="wave">✦</span>' : 'Plan your Instagram content <span class="wave">✦</span>';
+    if (platformCopy) platformCopy.textContent = isLinkedIn ? 'Organize professional posts and plan your LinkedIn content. Publishing connection is not set up yet.' : 'You’re all caught up. Here’s what’s moving across your content engine.';
+    if (platformNote) {
+      platformNote.textContent = isLinkedIn ? 'LinkedIn selected · Draft planning only for now. LinkedIn publishing is not connected yet.' : 'Instagram selected · Your existing Instagram workflow is unchanged.';
+      platformNote.classList.toggle('linkedin-note', isLinkedIn);
+    }
+  };
+  platformCards.forEach(card => card.addEventListener('click', () => setPlatform(card.dataset.platform)));
+  setPlatform(activePlatform === 'linkedin' ? 'linkedin' : 'instagram');
+});
+document.addEventListener('DOMContentLoaded', () => {
   if (window.lucide) window.lucide.createIcons();
 
   // Keep date inputs usable instead of leaving the original 2024 demo dates.
