@@ -1101,9 +1101,12 @@
   };
 
   document.addEventListener("DOMContentLoaded", async () => {
-    buildAuth();
-
-    // Single, explicit auth mode and click handlers.
+    // Authentication UI is owned by auth-module.js; dashboard code only receives the authenticated user event.
+    document.addEventListener("postpilot-auth-success", async (event) => {
+      currentUser = event.detail?.user || (await ensureClient()).auth.getUser().then(({data}) => data.user).catch(() => null);
+      if (currentUser) await finishSignIn();
+    });
+    /* Legacy auth UI launcher retained for password recovery/profile compatibility, not used by welcome-page buttons.
     window.postpilotOpenAuth = (signup = false) => {
       buildAuth();
       const switchButton = document.querySelector("#auth-switch");
@@ -1125,6 +1128,7 @@
       event.preventDefault();
       window.postpilotOpenAuth(true);
     });
+    */
 
     addBulkCaptionField();
     bindRealScheduling();
