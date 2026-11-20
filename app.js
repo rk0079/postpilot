@@ -28,7 +28,16 @@ document.addEventListener('DOMContentLoaded', () => {
     overviewElements.forEach(el=>el.hidden=isLinkedIn);
     if(isLinkedIn) renderLinkedInPosts();
   };
-  platformCards.forEach(card => card.addEventListener('click', () => setPlatform(card.dataset.platform)));
+  let pendingPlatform = null;
+  platformCards.forEach(card => card.addEventListener('click', () => {
+    const platform = card.dataset.platform;
+    if (window.postpilotWorkspace?.getUser()) { setPlatform(platform); return; }
+    pendingPlatform = platform;
+    document.querySelector('#auth-login-open')?.click();
+  }));
+  window.addEventListener('postpilot:auth-ready', () => {
+    if (pendingPlatform) { const platform = pendingPlatform; pendingPlatform = null; setPlatform(platform); }
+  });
 
   // LinkedIn planner: local drafts and scheduled planning records (not connected publishing).
   const LI_KEY='postpilot-linkedin-planner-v1';
