@@ -697,3 +697,6 @@ button:focus-visible, input:focus-visible, textarea:focus-visible { outline: 3px
   .batch-preview-heading { align-items:flex-start; }
   .batch-preview-heading button { width:100%; }
 }
+
+/* Unified studio launcher cards */
+.work-today{display:block!important}.work-today-heading{margin-bottom:20px}.studio-choice-grid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:18px}.studio-choice{background:#fff;border:1px solid var(--line);border-radius:18px;padding:22px;min-height:220px;display:flex;flex-direction:column;gap:14px;box-shadow:var(--shadow)}.studio-choice:hover{transform:translateY(-2px);transition:transform .18s ease}.studio-choice-icon{width:44px;height:44px;border-radius:14px;display:grid;place-items:center}.studio-choice-icon svg{width:23px;height:23px}.instagram-icon{background:#fff0f2;color:#d64c82}.linkedin-icon{background:#eaf3ff;color:#0a66c2}.studio-choice-copy h2{font:600 19px 'Space Grotesk',sans-serif;margin:0 0 7px}.studio-choice-copy p{margin:0;color:var(--muted);line-height:1.55;max-width:450px}.studio-choice-actions{display:flex;gap:9px;flex-wrap:wrap;margin-top:auto}@media(max-width:900px){.studio-choice-grid{grid-template-columns:1fr}}@media(max-width:480px){.studio-choice{padding:17px}.studio-choice-actions>*{flex:1;justify-content:center}}
