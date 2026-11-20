@@ -1081,24 +1081,23 @@
   document.addEventListener("DOMContentLoaded", async () => {
     buildAuth();
 
-    // One shared opener, called by both click delegation and inline fallback.
+    // Single, explicit auth mode and click handlers.
     window.postpilotOpenAuth = (signup = false) => {
       buildAuth();
       const switchButton = document.querySelector("#auth-switch");
-      const modeIsSignup = document.querySelector("#auth-submit")?.textContent === "Create account";
-      if (modeIsSignup !== Boolean(signup)) switchButton?.click();
+      if (isSignup !== Boolean(signup)) switchButton?.click();
       const backdrop = document.querySelector("#auth-backdrop");
       if (backdrop) backdrop.style.display = "grid";
       document.querySelector(signup ? "#auth-full-name" : "#auth-email")?.focus();
     };
-    document.addEventListener("click", (event) => {
-      const loginButton = event.target.closest("#auth-login-open");
-      const signupButton = event.target.closest("#auth-signup-open");
-      if (!loginButton && !signupButton) return;
+    document.querySelector("#auth-login-open")?.addEventListener("click", (event) => {
       event.preventDefault();
-      event.stopPropagation();
-      window.postpilotOpenAuth(Boolean(signupButton));
-    }, true);
+      window.postpilotOpenAuth(false);
+    });
+    document.querySelector("#auth-signup-open")?.addEventListener("click", (event) => {
+      event.preventDefault();
+      window.postpilotOpenAuth(true);
+    });
 
     addBulkCaptionField();
     bindRealScheduling();
