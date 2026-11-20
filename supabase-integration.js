@@ -2,6 +2,7 @@
   const SUPABASE_URL = "https://jzwnjzagmijikbhxtrcn.supabase.co";
   const SUPABASE_PUBLISHABLE_KEY = "sb_publishable_5pGDVM-9-TKyAOKTvQHWKw_j0ZKTy4p";
   let client = window.supabase?.createClient ? window.supabase.createClient(SUPABASE_URL, SUPABASE_PUBLISHABLE_KEY, { auth: { storage: window.sessionStorage, persistSession: true, autoRefreshToken: true, detectSessionInUrl: true } }) : null;
+  if (client) window.postpilotAuthClient = client;
   let supabaseLoadPromise = null;
   async function ensureClient() {
     if (client) return client;
@@ -19,6 +20,7 @@
     try { await supabaseLoadPromise; } catch (error) { supabaseLoadPromise = null; throw error; }
     if (!window.supabase?.createClient) { supabaseLoadPromise = null; throw new Error("Supabase SDK is unavailable. Please refresh and try again."); }
     client = window.supabase.createClient(SUPABASE_URL, SUPABASE_PUBLISHABLE_KEY, { auth: { storage: window.sessionStorage, persistSession: true, autoRefreshToken: true, detectSessionInUrl: true } });
+    window.postpilotAuthClient = client;
     return client;
   }
 
