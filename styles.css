@@ -770,3 +770,35 @@ button:focus-visible, input:focus-visible, textarea:focus-visible { outline: 3px
 
 /* Keep the application inaccessible until authentication succeeds. */
 body.auth-required #auth-backdrop { display: grid; }
+
+/* PostPilot signed-out landing */
+.auth-landing{min-height:100vh;background:radial-gradient(ellipse at 85% 10%,#e9e3ff 0,transparent 32%),#f8f7fb;color:#242338;padding:0 clamp(20px,5vw,72px);font-family:"DM Sans",sans-serif}
+body.auth-required .app-shell{display:none}
+body.auth-required #auth-landing{display:block}
+.landing-nav{max-width:1240px;margin:auto;height:84px;display:flex;align-items:center;justify-content:space-between;border-bottom:1px solid #e7e4ef}
+.landing-brand{font:700 24px "Space Grotesk",sans-serif;letter-spacing:-.8px;display:flex;align-items:center;gap:11px}
+.landing-mark{width:34px;height:34px;border-radius:11px;background:#6555d9;color:#fff;display:grid;place-items:center;font-weight:800}
+.landing-nav-note{color:#8b879d;font-size:13px}
+.landing-content{max-width:1240px;margin:0 auto;display:grid;grid-template-columns:1.03fr .97fr;gap:56px;align-items:center;padding:clamp(42px,7vw,94px) 0}
+.landing-eyebrow{letter-spacing:2px;color:#7769c8;font-size:11px;font-weight:800}
+.landing-hero h1{font:700 clamp(42px,5.5vw,76px)/1.05 "Space Grotesk",sans-serif;letter-spacing:-3px;margin:22px 0}
+.landing-hero h1 em{color:#7664dc;font-style:normal}
+.landing-hero>p{font-size:17px;color:#77748b;max-width:500px;line-height:1.7}
+.landing-auth-actions{display:grid;gap:12px;max-width:390px;margin-top:32px}
+.landing-primary,.landing-secondary{border:0;border-radius:14px;padding:16px 20px;font:700 15px "DM Sans",sans-serif;cursor:pointer;display:flex;justify-content:space-between;align-items:center}
+.landing-primary{background:#6755d9;color:#fff;box-shadow:0 12px 28px #6755d92b}
+.landing-secondary{background:#fff;color:#39354d;border:1px solid #e9e5f2}
+.landing-primary:hover{background:#5948c8}.landing-secondary:hover{border-color:#c7bff0}
+.landing-trust{display:flex;flex-wrap:wrap;gap:18px;margin-top:22px;color:#918da1;font-size:12px}.landing-trust span{display:flex;align-items:center;gap:7px}.landing-trust i{width:7px;height:7px;border-radius:50%;background:#8bceae}
+.landing-feature-grid{display:grid;grid-template-columns:1fr 1fr;gap:15px}
+.landing-feature{border:1px solid #ebe8f4;background:#ffffffc9;border-radius:23px;padding:24px;box-shadow:0 18px 50px #37305008}
+.landing-feature-wide{grid-column:span 2;background:linear-gradient(120deg,#fff,#f6f2ff)}
+.landing-feature-icon{width:40px;height:40px;border-radius:13px;display:grid;place-items:center;font-weight:800;margin-bottom:18px;font-size:17px}
+.landing-feature-icon.ig{background:#fbe9f2;color:#cf4e91}.landing-feature-icon.li{background:#e3efff;color:#2768a8}.landing-feature-icon.sparkle{background:#eeeaff;color:#7561cf}
+.landing-feature-label{font-size:10px;letter-spacing:1.6px;color:#918ba5;font-weight:800}
+.landing-feature h3{font:700 21px "Space Grotesk",sans-serif;margin:8px 0}
+.landing-feature p{color:#89859b;font-size:13px;line-height:1.6;margin:0}
+.landing-tags{display:flex;flex-wrap:wrap;gap:7px;margin-top:16px}.landing-tags span{font-size:11px;background:#f1eef9;color:#736b91;border-radius:30px;padding:7px 10px}
+.landing-footer{max-width:1240px;margin:auto;border-top:1px solid #e7e4ef;padding:20px 0;display:flex;justify-content:space-between;color:#9b97a8;font-size:12px}
+@media(max-width:850px){.landing-content{grid-template-columns:1fr;gap:30px;padding:40px 0}.landing-feature-grid{grid-template-columns:1fr 1fr}.landing-feature-wide{grid-column:span 2}.landing-hero h1{letter-spacing:-2px}.landing-nav{height:68px}}
+@media(max-width:520px){.auth-landing{padding:0 16px}.landing-nav-note{display:none}.landing-content{padding:34px 0}.landing-feature-grid{grid-template-columns:1fr}.landing-feature-wide{grid-column:auto}.landing-footer{gap:12px;flex-direction:column}.landing-feature{padding:20px}}
