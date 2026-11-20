@@ -85,7 +85,7 @@ document.addEventListener('DOMContentLoaded', () => {
     button.addEventListener('click', () => setMode(button.dataset.mode));
   });
 
-  // Saving is handled only by supabase-integration.js. Never show a fake success state.
+  // Dashboard LinkedIn connection button: standalone handler because dashboard is outside workspaceViews.\n  document.querySelector('#dashboard-linkedin-connect')?.addEventListener('click', async () => {\n    const button = document.querySelector('#dashboard-linkedin-connect');\n    button.disabled = true;\n    try {\n      const client = window.supabase.createClient('https://jzwnjzagmijikbhxtrcn.supabase.co','sb_publishable_5pGDVM-9-TKyAOKTvQHWKw_j0ZKTy4p',{auth:{storage:window.sessionStorage,persistSession:true,autoRefreshToken:true,detectSessionInUrl:true}});\n      const {data:{session}} = await client.auth.getSession();\n      if (!session) throw new Error('Please log in to PostPilot before connecting LinkedIn.');\n      const {data,error} = await client.functions.invoke('linkedin-oauth',{body:{action:'connect'}});\n      if (error) throw error;\n      if (!data?.url) throw new Error('LinkedIn authorization URL was not returned.');\n      window.location.href = data.url;\n    } catch(error) {\n      window.alert(error.message || 'Could not start LinkedIn connection.');\n      button.disabled = false;\n    }\n  });\n\n  // Saving is handled only by supabase-integration.js. Never show a fake success state.
 
   const dropZone = document.querySelector('#drop-zone');
   const fileInput = document.querySelector('#file-input');
