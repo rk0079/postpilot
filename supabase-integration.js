@@ -130,7 +130,7 @@
         submit.textContent = "Updating password…";
         showAuthError("");
         try {
-          const { error } = await client.auth.updateUser({ password });
+          const { error } = await authClient.auth.updateUser({ password });
           if (error) throw error;
           window.history.replaceState({}, "", window.location.pathname);
           isPasswordRecovery = false;
@@ -169,9 +169,10 @@
       submit.textContent = isSignup ? "Creating account…" : "Signing in…";
       showAuthError("");
       try {
+        const authClient = await ensureClient();
         const result = isSignup
-          ? await client.auth.signUp({ email, password, options: { data: { full_name: fullName, workspace_name: workspaceName } } })
-          : await client.auth.signInWithPassword({ email, password });
+          ? await authClient.auth.signUp({ email, password, options: { data: { full_name: fullName, workspace_name: workspaceName } } })
+          : await authClient.auth.signInWithPassword({ email, password });
         if (result.error) throw result.error;
         if (isSignup && !result.data.session) {
           showAuthError("Account created. Check your email to confirm your address, then sign in.");
@@ -1123,7 +1124,8 @@
     bindRealScheduling();
     bindPostActions();
     restoreReminders();
-    const { data, error } = await client.auth.getSession();
+    const authClient = await ensureClient();
+    const { data, error } = await authClient.auth.getSession();
     if (error) console.error("Supabase session error:", error);
     currentUser = data?.session?.user || null;
     if (currentUser) {
@@ -1133,7 +1135,7 @@
       // Automatically open the login dialog for signed-out visitors on page load.
       window.postpilotOpenAuth(false);
     }
-    client.auth.onAuthStateChange((event, session) => {
+    authClient.auth.onAuthStateChange((event, session) => {
       if (event === "PASSWORD_RECOVERY" || new URLSearchParams(window.location.hash.replace(/^#/, "")).get("type") === "recovery" || new URLSearchParams(window.location.search).get("reset_password") === "1") {
         activatePasswordRecovery();
         return;
