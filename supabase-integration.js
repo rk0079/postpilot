@@ -281,7 +281,6 @@
 
   async function finishSignIn() {
     if (!currentUser) return;
-    document.body.classList.remove("auth-required");
     const fullName = currentUser.user_metadata?.full_name || currentUser.user_metadata?.name || "";
     const workspaceName = currentUser.user_metadata?.workspace_name || "";
     const { data: savedProfile, error: profileReadError } = await client.from("profiles").select("full_name,workspace_name").eq("id", currentUser.id).maybeSingle();
@@ -290,6 +289,7 @@
     const profileData = savedProfile || { full_name: fullName.trim(), workspace_name: workspaceName.trim() };
     const { error: profileWriteError } = await client.from("profiles").upsert({ id: currentUser.id, full_name: profileData.full_name, workspace_name: profileData.workspace_name, updated_at: new Date().toISOString() });
     if (profileWriteError) { toast("Could not save your profile: " + profileWriteError.message); return; }
+    document.body.classList.remove("auth-required");
     await loadReminderPreferences();
     const backdrop = document.querySelector("#auth-backdrop");
     if (backdrop) backdrop.style.display = "none";
