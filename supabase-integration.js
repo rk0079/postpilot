@@ -1,7 +1,26 @@
 (() => {
   const SUPABASE_URL = "https://jzwnjzagmijikbhxtrcn.supabase.co";
   const SUPABASE_PUBLISHABLE_KEY = "sb_publishable_5pGDVM-9-TKyAOKTvQHWKw_j0ZKTy4p";
-  const client = window.supabase.createClient(SUPABASE_URL, SUPABASE_PUBLISHABLE_KEY, { auth: { storage: window.sessionStorage, persistSession: true, autoRefreshToken: true, detectSessionInUrl: true } });
+  let client = window.supabase?.createClient ? window.supabase.createClient(SUPABASE_URL, SUPABASE_PUBLISHABLE_KEY, { auth: { storage: window.sessionStorage, persistSession: true, autoRefreshToken: true, detectSessionInUrl: true } }) : null;
+  let supabaseLoadPromise = null;
+  async function ensureClient() {
+    if (client) return client;
+    if (!supabaseLoadPromise) {
+      supabaseLoadPromise = new Promise((resolve, reject) => {
+        if (window.supabase?.createClient) return resolve();
+        const script = document.createElement("script");
+        script.src = "https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2";
+        script.async = true;
+        script.onload = resolve;
+        script.onerror = () => reject(new Error("Supabase SDK could not load. Check your connection and refresh."));
+        document.head.appendChild(script);
+      });
+    }
+    await supabaseLoadPromise;
+    if (!window.supabase?.createClient) throw new Error("Supabase SDK is unavailable. Please refresh and try again.");
+    client = window.supabase.createClient(SUPABASE_URL, SUPABASE_PUBLISHABLE_KEY, { auth: { storage: window.sessionStorage, persistSession: true, autoRefreshToken: true, detectSessionInUrl: true } });
+    return client;
+  }
 
   let currentUser = null;
   let isSignup = false;
@@ -61,7 +80,7 @@
       showAuthError("");
       try {
         const redirectTo = window.location.origin + window.location.pathname + "?reset_password=1";
-        const { error } = await client.auth.resetPasswordForEmail(email, { redirectTo });
+        const authClient = await ensureClient();\n        const { error } = await authClient.auth.resetPasswordForEmail(email, { redirectTo });
         if (error) throw error;
         showAuthError("If an account exists for this email, a password reset link has been sent. Check your inbox and spam folder.");
         const errorBox = document.querySelector("#auth-error");
