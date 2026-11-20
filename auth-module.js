@@ -4,7 +4,7 @@
   const URL = "https://jzwnjzagmijikbhxtrcn.supabase.co";
   const KEY = "sb_publishable_5pGDVM-9-TKyAOKTvQHWKw_j0ZKTy4p";
   let authClient = null, signupMode = false;
-  const getClient = () => authClient || (authClient = window.supabase.createClient(URL, KEY, {
+  const getClient = () => window.postpilotAuthClient || authClient || (authClient = window.supabase.createClient(URL, KEY, {
     auth: { storage: window.sessionStorage, persistSession: true, autoRefreshToken: true, detectSessionInUrl: true }
   }));
   const esc = (s) => String(s || "").replace(/[&<>"']/g, c => ({ "&":"&amp;", "<":"&lt;", ">":"&gt;", '"':"&quot;", "'":"&#39;" }[c]));
