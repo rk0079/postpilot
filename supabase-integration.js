@@ -972,7 +972,21 @@
   const invokeLinkedInAction = async (body) => {
     if (!currentUser) throw new Error("Sign in to connect LinkedIn.");
     const { data, error } = await client.functions.invoke("linkedin-oauth", { body });
-    if (error) throw new Error(error.message || "LinkedIn request failed.");
+    if (error) {
+      let detail = "";
+      const context = error.context;
+      try {
+        if (context && typeof context.clone === "function") {
+          const response = context.clone();
+          const bodyText = await response.text();
+          detail = "HTTP " + response.status + (bodyText ? " · " + bodyText.slice(0, 500) : "");
+        } else if (context) {
+          detail = String(context);
+        }
+      } catch (_) {}
+      console.error("PostPilot LinkedIn function invocation failed", { action: body?.action, error, detail });
+      throw new Error((error.message || "LinkedIn request failed.") + (detail ? " Details: " + detail : " (No HTTP response body available; check browser console/network.) );
+    }
     if (data?.error) throw new Error(data.error);
     return data;
   };
