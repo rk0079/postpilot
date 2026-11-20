@@ -1,0 +1,33 @@
+{
+  "app": {
+    "name": "PostPilot",
+    "configVersion": 1
+  },
+  "environments": {
+    "production": {
+      "frontendUrl": "https://postpilot-yoooo7.vercel.app",
+      "supabaseProjectRef": "jzwnjzagmijikbhxtrcn"
+    },
+    "preview": {
+      "frontendUrlPattern": "https://*.vercel.app",
+      "usesProductionBackendByDefault": false
+    }
+  },
+  "integrations": {
+    "supabase": {
+      "projectRef": "jzwnjzagmijikbhxtrcn",
+      "url": "https://jzwnjzagmijikbhxtrcn.supabase.co"
+    },
+    "linkedin": {
+      "oauthCallbackUrl": "https://jzwnjzagmijikbhxtrcn.supabase.co/functions/v1/linkedin-oauth"
+    },
+    "instagram": {
+      "callbackManagedBySupabase": true
+    }
+  },
+  "deployment": {
+    "provider": "vercel",
+    "productionRequiresApproval": true,
+    "previewDeploymentsEnabled": true
+  }
+}
