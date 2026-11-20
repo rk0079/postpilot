@@ -1,0 +1,21 @@
+/* Isolated auth module styles: pp-auth-* only. */
+.pp-auth-overlay{position:fixed;inset:0;z-index:2000;display:grid;place-items:center;padding:18px;background:rgba(25,22,42,.55);backdrop-filter:blur(10px)}
+.pp-auth-overlay[hidden]{display:none!important}
+.pp-auth-card{position:relative;width:min(100%,440px);max-height:calc(100vh - 36px);overflow:auto;background:#fff;border:1px solid #ece8f6;border-radius:26px;padding:34px;box-shadow:0 30px 90px rgba(22,18,38,.24);color:#27243b;font-family:"DM Sans",sans-serif}
+.pp-auth-close{position:absolute;right:18px;top:16px;border:0;background:#f3f1f8;color:#5e5872;border-radius:50%;width:34px;height:34px;font-size:23px;cursor:pointer}
+.pp-auth-brand{display:flex;align-items:center;gap:9px;font-weight:800;font-size:18px;margin-bottom:26px}
+.pp-auth-brand span{display:grid;place-items:center;width:32px;height:32px;background:#6655d8;color:#fff;border-radius:10px;font-weight:800}
+.pp-auth-eyebrow{font-size:10px;font-weight:800;letter-spacing:1.4px;color:#8077ae;margin-bottom:10px}
+.pp-auth-card h2{font:700 27px "Space Grotesk",sans-serif;margin:0 0 8px;letter-spacing:-.8px}
+.pp-auth-card p{font-size:14px;line-height:1.5;color:#777387;margin:0 0 22px}
+.pp-auth-card form{display:grid;gap:10px}
+.pp-auth-card label{font-size:12px;font-weight:700;color:#514b67;margin-top:5px}
+.pp-auth-card input{width:100%;box-sizing:border-box;border:1px solid #e6e2ef;border-radius:12px;padding:13px 14px;font:inherit;color:#29253a;outline:none;background:#fff}
+.pp-auth-card input:focus{border-color:#8171e3;box-shadow:0 0 0 3px rgba(129,113,227,.12)}
+.pp-auth-submit{border:0;border-radius:12px;background:#6755d9;color:#fff;padding:14px;font-weight:800;font:inherit;cursor:pointer;margin-top:8px}
+.pp-auth-submit:disabled{opacity:.6;cursor:wait}
+.pp-auth-error{color:#b42335;font-size:13px;line-height:1.4;min-height:0}
+.pp-auth-switch{text-align:center;margin:18px 0 0;font-size:13px;color:#706b83}
+.pp-auth-switch button{border:0;background:transparent;color:#6655d6;font-weight:800;cursor:pointer;font:inherit}
+.pp-auth-privacy{font-size:11px!important;text-align:center;color:#9a96a7!important;margin:16px 0 0!important}
+@media(max-width:480px){.pp-auth-card{padding:26px 20px;border-radius:20px}.pp-auth-brand{margin-bottom:20px}}
