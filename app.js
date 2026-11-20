@@ -702,7 +702,7 @@ document.addEventListener('DOMContentLoaded', () => {
   async function refreshLinkedInSettingsStatus() {
     const target=document.querySelector('#settings-linkedin-status'), disconnect=document.querySelector('[data-linkedin-disconnect]'), connect=document.querySelector('[data-linkedin-connect]');
     try {
-      const client=window.supabase.createClient('https://jzwnjzagmijikbhxtrcn.supabase.co','sb_publishable_5pGDVM-9-TKyAOKTvQHWKw_j0ZKTy4p',{auth:{storage:window.sessionStorage,persistSession:true,autoRefreshToken:true,detectSessionInUrl:true}});
+      const client=window.postpilotSupabaseClient;
       const {data:{session}}=await client.auth.getSession();
       if(!session){target.innerHTML='<span class="instagram-disconnected-dot"></span><div><strong>Sign in to PostPilot first</strong><small>Then connect your LinkedIn account.</small></div>';connect.disabled=true;disconnect.hidden=true;return;}
       connect.disabled=false;
