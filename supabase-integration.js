@@ -96,16 +96,7 @@
       showAuthError("");
     };
     document.querySelector("#auth-switch").addEventListener("click", () => setAuthMode(!isSignup));
-    document.querySelector("#auth-login-open")?.addEventListener("click", () => {
-      setAuthMode(false);
-      document.querySelector("#auth-backdrop").style.display = "grid";
-      document.querySelector("#auth-email").focus();
-    });
-    document.querySelector("#auth-signup-open")?.addEventListener("click", () => {
-      setAuthMode(true);
-      document.querySelector("#auth-backdrop").style.display = "grid";
-      document.querySelector("#auth-full-name").focus();
-    });;
+
 
     document.querySelector("#auth-form").addEventListener("submit", async (event) => {
       event.preventDefault();
@@ -1087,6 +1078,23 @@
 
   document.addEventListener("DOMContentLoaded", async () => {
     buildAuth();
+
+    // Single capture-phase handler for login/signup, resilient to header re-rendering.
+    document.addEventListener("click", (event) => {
+      const loginButton = event.target.closest("#auth-login-open");
+      const signupButton = event.target.closest("#auth-signup-open");
+      if (!loginButton && !signupButton) return;
+      event.preventDefault();
+      event.stopPropagation();
+      const signup = Boolean(signupButton);
+      const switchButton = document.querySelector("#auth-switch");
+      const modeIsSignup = document.querySelector("#auth-submit")?.textContent === "Create account";
+      if (modeIsSignup !== signup) switchButton?.click();
+      const backdrop = document.querySelector("#auth-backdrop");
+      if (backdrop) backdrop.style.display = "grid";
+      const target = document.querySelector(signup ? "#auth-full-name" : "#auth-email");
+      target?.focus();
+    }, true);
 
     addBulkCaptionField();
     bindRealScheduling();
