@@ -769,4 +769,4 @@ button:focus-visible, input:focus-visible, textarea:focus-visible { outline: 3px
 
 
 /* Keep the application inaccessible until authentication succeeds. */
-body.auth-required #auth-backdrop { display: grid !important; }
+body.auth-required #auth-backdrop { display: grid; }
