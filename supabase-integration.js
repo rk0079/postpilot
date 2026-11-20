@@ -1109,7 +1109,13 @@
       const switchButton = document.querySelector("#auth-switch");
       if (isSignup !== Boolean(signup)) switchButton?.click();
       const backdrop = document.querySelector("#auth-backdrop");
-      if (backdrop) backdrop.style.display = "grid";
+      if (backdrop) {
+        backdrop.hidden = false;
+        backdrop.style.removeProperty("display");
+        backdrop.style.display = "grid";
+        backdrop.setAttribute("aria-hidden", "false");
+      }
+      document.body.classList.remove("auth-required");
       document.querySelector(signup ? "#auth-full-name" : "#auth-email")?.focus();
     };
     document.querySelector("#auth-login-open")?.addEventListener("click", (event) => {
