@@ -11,23 +11,8 @@
     <link rel="stylesheet" href="styles.css" />
     <link rel="stylesheet" href="auth-module.css" />
   </head>
-  <body class="auth-required">
-    <main id="auth-landing" class="auth-landing" hidden>
-    <div class="landing-nav"><div class="landing-brand"><span class="landing-mark">P</span> postpilot</div><span class="landing-nav-note">Your social workflow, simplified</span></div>
-    <div class="landing-content">
-      <section class="landing-hero"><span class="landing-eyebrow">THE CONTENT WORKFLOW STUDIO</span><h1>Welcome to your<br><em>dashboard.</em></h1><p>Plan, create, organize and publish your content for Instagram and LinkedIn — all from one calm workspace.</p>
-        <div class="landing-auth-actions"><button class="landing-primary" id="landing-login" type="button" onclick="window.postpilotOpenAuth && window.postpilotOpenAuth(false)">Log in to your dashboard <span>→</span></button><button class="landing-secondary" id="landing-signup" type="button" onclick="window.postpilotOpenAuth && window.postpilotOpenAuth(true)">Create an account <span>↗</span></button></div>
-        <div class="landing-trust"><span><i></i> Your own private workspace</span><span><i></i> Sign in to get started</span></div>
-      </section>
-      <section class="landing-feature-grid" aria-label="PostPilot features">
-        <article class="landing-feature landing-feature-wide"><div class="landing-feature-icon ig">◎</div><div class="landing-feature-label">INSTAGRAM</div><h3>Posts, reels &amp; bulk planning</h3><p>Keep media, captions, hashtags and your publishing calendar organized. Connect your Instagram professional account when you're ready.</p><div class="landing-tags"><span>Content calendar</span><span>Bulk scheduler</span><span>Caption &amp; hashtags</span></div></article>
-        <article class="landing-feature"><div class="landing-feature-icon li">in</div><div class="landing-feature-label">LINKEDIN</div><h3>Professional content, planned</h3><p>Draft posts, build a queue, choose dates and publish when you're ready.</p></article>
-        <article class="landing-feature"><div class="landing-feature-icon sparkle">✦</div><div class="landing-feature-label">YOUR CONTENT TOOLS</div><h3>Everything in one place</h3><p>Media library, reminders, calendar, analytics view, team workspace and social inbox tools.</p></article>
-      </section>
-    </div>
-    <footer class="landing-footer"><span>PostPilot</span><span>Plan with intention. Publish with confidence.</span></footer>
-  </main>
-\n  <div class="app-shell">
+  <body>
+  <div class="app-shell">
       <aside class="sidebar">
         <div class="brand-row">
           <div class="brand-mark"><span></span><span></span><span></span></div>
@@ -74,11 +59,6 @@
           <div class="breadcrumbs"><span>Workspace</span><i data-lucide="chevron-right"></i><strong>Overview</strong></div>
           <div class="topbar-actions">
             <div class="date-display"><i data-lucide="calendar"></i><span>Your schedule</span></div>
-            <div class="auth-entry-actions" id="auth-entry-actions" aria-label="Account access">
-              
-              <button class="outline-button auth-entry-button" id="auth-login-open" type="button">Log in</button>
-              <button class="primary-button auth-entry-button" id="auth-signup-open" type="button">Sign up</button>
-            </div>
             <button class="icon-button notification-button" type="button" aria-label="Notifications"><i data-lucide="bell"></i><span></span></button>
             <button class="outline-button invite-button" type="button" hidden><i data-lucide="user-plus"></i> Invite</button>
             <span class="avatar avatar-maya large-avatar user-initials" data-user-initials>—</span>
