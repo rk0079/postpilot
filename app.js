@@ -39,6 +39,21 @@ document.addEventListener('DOMContentLoaded', () => {
     if (pendingPlatform) { const platform = pendingPlatform; pendingPlatform = null; setPlatform(platform); }
   });
 
+  // LinkedIn connection status and manual publish.
+  const liStatusText=document.querySelector('#li-status-text');
+  const liConnectBtn=document.querySelector('#li-connect-btn');
+  const liDisconnectBtn=document.querySelector('#li-disconnect-btn');
+  const liPublishBtn=document.querySelector('#li-publish-now');
+  let linkedinConnected=false;
+  async function refreshLinkedInStatus(){
+    if(!window.postpilotWorkspace?.getUser()){if(liStatusText)liStatusText.textContent="Sign in to connect";return;}
+    try{const result=await window.postpilotWorkspace.getLinkedInStatus();linkedinConnected=Boolean(result.connected);if(liStatusText)liStatusText.textContent=result.connected?(result.profile?.display_name||"LinkedIn connected"):"Not connected";if(liConnectBtn)liConnectBtn.textContent=linkedinConnected?"Reconnect LinkedIn":"Connect LinkedIn";if(liDisconnectBtn)liDisconnectBtn.hidden=!linkedinConnected;if(liPublishBtn)liPublishBtn.disabled=!linkedinConnected;}
+    catch(error){linkedinConnected=false;if(liStatusText)liStatusText.textContent="Connection status unavailable";if(liPublishBtn)liPublishBtn.disabled=true;}
+  }
+  liConnectBtn?.addEventListener('click',async()=>{try{liConnectBtn.disabled=true;await window.postpilotWorkspace.connectLinkedIn();}catch(error){alert(error.message||"Could not connect LinkedIn.");liConnectBtn.disabled=false;}});
+  liDisconnectBtn?.addEventListener('click',async()=>{if(!confirm("Disconnect LinkedIn from PostPilot?"))return;try{await window.postpilotWorkspace.disconnectLinkedIn();linkedinConnected=false;await refreshLinkedInStatus();}catch(error){alert(error.message||"Could not disconnect LinkedIn.");}});
+  liPublishBtn?.addEventListener('click',async()=>{const content=document.querySelector('#li-text')?.value.trim()||"";if(!content){alert("Write your post text first.");return;}if(!linkedinConnected){alert("Connect LinkedIn before publishing.");return;}if(!confirm("Publish this text post to LinkedIn now?"))return;liPublishBtn.disabled=true;try{const result=await window.postpilotWorkspace.publishLinkedIn(content);alert(result.published?"Published to LinkedIn successfully!":"LinkedIn publish returned no confirmation.");clearComposer();}catch(error){alert(error.message||"LinkedIn publish failed.");}finally{liPublishBtn.disabled=!linkedinConnected;}});
+  window.addEventListener('postpilot:auth-ready',()=>setTimeout(refreshLinkedInStatus,500));
   // LinkedIn planner: local drafts and scheduled planning records (not connected publishing).
   const LI_KEY='postpilot-linkedin-planner-v1';
   const readPosts=()=>{try{return JSON.parse(localStorage.getItem(LI_KEY)||'[]')}catch(_){return []}};
@@ -79,7 +94,7 @@ document.addEventListener('DOMContentLoaded', () => {
     if(!posts.length){list.innerHTML='<div class="linkedin-empty">No LinkedIn posts yet. Create a draft or add posts using the bulk planner.</div>';return;}
     list.innerHTML=posts.map(post=>'<article class="linkedin-post-card"><div class="linkedin-post-card-top"><strong>'+safeText(post.title)+'</strong><span class="linkedin-post-badge '+post.status+'">'+(post.status==='draft'?'Draft':'Scheduled')+'</span></div><p>'+safeText(post.text)+'</p><div class="linkedin-post-meta">'+(post.status==='scheduled'?'Planned for ':'Draft · ')+(post.status==='scheduled'?safeText(post.date)+' at '+safeText(post.time):safeText(post.date))+'</div><button type="button" class="row-menu" data-li-delete="'+safeText(post.id)+'">Delete</button></article>').join('');
   }
-  setPlatform(activePlatform === 'linkedin' ? 'linkedin' : 'instagram');
+  setPlatform(activePlatform === 'linkedin' ? 'linkedin' : 'instagram');\n  refreshLinkedInStatus();
 });
 document.addEventListener('DOMContentLoaded', () => {
   if (window.lucide) window.lucide.createIcons();
