@@ -85,7 +85,29 @@ document.addEventListener('DOMContentLoaded', () => {
     button.addEventListener('click', () => setMode(button.dataset.mode));
   });
 
-  // Dashboard LinkedIn connection button: standalone handler because dashboard is outside workspaceViews.\n  document.querySelector('#dashboard-linkedin-connect')?.addEventListener('click', async () => {\n    const button = document.querySelector('#dashboard-linkedin-connect');\n    button.disabled = true;\n    try {\n      const client = window.supabase.createClient('https://jzwnjzagmijikbhxtrcn.supabase.co','sb_publishable_5pGDVM-9-TKyAOKTvQHWKw_j0ZKTy4p',{auth:{storage:window.sessionStorage,persistSession:true,autoRefreshToken:true,detectSessionInUrl:true}});\n      const {data:{session}} = await client.auth.getSession();\n      if (!session) throw new Error('Please log in to PostPilot before connecting LinkedIn.');\n      const {data,error} = await client.functions.invoke('linkedin-oauth',{body:{action:'connect'}});\n      if (error) throw error;\n      if (!data?.url) throw new Error('LinkedIn authorization URL was not returned.');\n      window.location.href = data.url;\n    } catch(error) {\n      window.alert(error.message || 'Could not start LinkedIn connection.');\n      button.disabled = false;\n    }\n  });\n\n  // Saving is handled only by supabase-integration.js. Never show a fake success state.
+  // Dashboard LinkedIn connection button: standalone handler because dashboard is outside workspaceViews.\n  document.querySelector('#dashboard-linkedin-connect')?.addEventListener('click', async () => {\n    const button = document.querySelector('#dashboard-linkedin-connect');\n    button.disabled = true;\n    try {\n      const client = window.supabase.createClient('https://jzwnjzagmijikbhxtrcn.supabase.co','sb_publishable_5pGDVM-9-TKyAOKTvQHWKw_j0ZKTy4p',{auth:{storage:window.sessionStorage,persistSession:true,autoRefreshToken:true,detectSessionInUrl:true}});\n      const {data:{session}} = await client.auth.getSession();\n      if (!session) throw new Error('Please log in to PostPilot before connecting LinkedIn.');\n      const {data,error} = await client.functions.invoke('linkedin-oauth',{body:{action:'connect'}});\n      if (error) throw error;\n      if (!data?.url) throw new Error('LinkedIn authorization URL was not returned.');\n      window.location.href = data.url;\n    } catch(error) {\n      window.alert(error.message || 'Could not start LinkedIn connection.');\n      button.disabled = false;\n    }\n  });\n\n  // Load LinkedIn connection status on the main dashboard, using the existing OAuth status action.
+  const dashboardLinkedInStatus = document.querySelector('#dashboard-linkedin-status');
+  const refreshDashboardLinkedInStatus = async () => {
+    if (!dashboardLinkedInStatus) return;
+    try {
+      const client = window.supabase.createClient('https://jzwnjzagmijikbhxtrcn.supabase.co','sb_publishable_5pGDVM-9-TKyAOKTvQHWKw_j0ZKTy4p',{auth:{storage:window.sessionStorage,persistSession:true,autoRefreshToken:true,detectSessionInUrl:true}});
+      const {data:{session}} = await client.auth.getSession();
+      if (!session) {
+        dashboardLinkedInStatus.innerHTML = '<span class="instagram-disconnected-dot"></span><div><strong>Sign in to PostPilot first</strong><small>Then connect your LinkedIn account.</small></div>';
+        return;
+      }
+      const {data,error} = await client.functions.invoke('linkedin-oauth',{body:{action:'status'}});
+      if (error || data?.error) throw error || new Error(data.error);
+      dashboardLinkedInStatus.innerHTML = data?.connected
+        ? '<span class="instagram-connected-dot"></span><div><strong>Connected as '+workspaceEscape(data.profile?.display_name || 'LinkedIn account')+'</strong><small>LinkedIn connection active</small></div>'
+        : '<span class="instagram-disconnected-dot"></span><div><strong>LinkedIn not connected</strong><small>Connect to enable publishing</small></div>';
+    } catch (error) {
+      dashboardLinkedInStatus.innerHTML = '<span class="instagram-disconnected-dot"></span><div><strong>Connection status unavailable</strong><small>'+workspaceEscape(error.message || 'Could not check LinkedIn status')+'</small></div>';
+    }
+  };
+  refreshDashboardLinkedInStatus();
+
+  // Saving is handled only by supabase-integration.js. Never show a fake success state.
 
   const dropZone = document.querySelector('#drop-zone');
   const fileInput = document.querySelector('#file-input');
