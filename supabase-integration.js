@@ -16,8 +16,8 @@
         document.head.appendChild(script);
       });
     }
-    await supabaseLoadPromise;
-    if (!window.supabase?.createClient) throw new Error("Supabase SDK is unavailable. Please refresh and try again.");
+    try { await supabaseLoadPromise; } catch (error) { supabaseLoadPromise = null; throw error; }
+    if (!window.supabase?.createClient) { supabaseLoadPromise = null; throw new Error("Supabase SDK is unavailable. Please refresh and try again."); }
     client = window.supabase.createClient(SUPABASE_URL, SUPABASE_PUBLISHABLE_KEY, { auth: { storage: window.sessionStorage, persistSession: true, autoRefreshToken: true, detectSessionInUrl: true } });
     return client;
   }
@@ -130,6 +130,7 @@
         submit.textContent = "Updating password…";
         showAuthError("");
         try {
+          const authClient = await ensureClient();
           const { error } = await authClient.auth.updateUser({ password });
           if (error) throw error;
           window.history.replaceState({}, "", window.location.pathname);
