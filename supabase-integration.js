@@ -250,6 +250,7 @@
     document.querySelector("#linkedin-workspace")?.setAttribute("hidden", "");
     document.querySelectorAll(".welcome-row,.metric-grid,.workspace-grid,.bottom-grid").forEach(el => el.setAttribute("hidden", ""));
     document.querySelector(".invite-button")?.setAttribute("hidden", "");
+    document.querySelector(".quick-action[data-action=\"invite\"]")?.setAttribute("hidden", "");
     document.querySelectorAll("[data-user-initials]").forEach(el => el.textContent = "—");
     const guestGateButton = document.querySelector("#guest-login-cta");
     if (guestGateButton && !guestGateButton.dataset.bound) { guestGateButton.dataset.bound = "1"; guestGateButton.addEventListener("click", () => { buildAuth(); isSignup = false; document.querySelector("#auth-title").textContent = "Welcome to PostPilot"; document.querySelector("#auth-backdrop").style.display = "grid"; }); }
@@ -305,6 +306,7 @@
     document.querySelector(".platform-selector")?.removeAttribute("hidden");
     document.querySelectorAll(".welcome-row,.metric-grid,.workspace-grid,.bottom-grid").forEach(el => el.removeAttribute("hidden"));
     document.querySelector(".invite-button")?.removeAttribute("hidden");
+    document.querySelector(".quick-action[data-action=\"invite\"]")?.removeAttribute("hidden");
     const initials = String(profileData.full_name || "").trim().split(/\\s+/).filter(Boolean).slice(0,2).map(part => part.charAt(0).toUpperCase()).join("") || "U";
     document.querySelectorAll("[data-user-initials]").forEach(el => el.textContent = initials);
     // A prior guest render may have inserted this banner; remove it as soon as auth is restored.
