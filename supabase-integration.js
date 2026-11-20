@@ -1079,21 +1079,23 @@
   document.addEventListener("DOMContentLoaded", async () => {
     buildAuth();
 
-    // Single capture-phase handler for login/signup, resilient to header re-rendering.
+    // One shared opener, called by both click delegation and inline fallback.
+    window.postpilotOpenAuth = (signup = false) => {
+      buildAuth();
+      const switchButton = document.querySelector("#auth-switch");
+      const modeIsSignup = document.querySelector("#auth-submit")?.textContent === "Create account";
+      if (modeIsSignup !== Boolean(signup)) switchButton?.click();
+      const backdrop = document.querySelector("#auth-backdrop");
+      if (backdrop) backdrop.style.display = "grid";
+      document.querySelector(signup ? "#auth-full-name" : "#auth-email")?.focus();
+    };
     document.addEventListener("click", (event) => {
       const loginButton = event.target.closest("#auth-login-open");
       const signupButton = event.target.closest("#auth-signup-open");
       if (!loginButton && !signupButton) return;
       event.preventDefault();
       event.stopPropagation();
-      const signup = Boolean(signupButton);
-      const switchButton = document.querySelector("#auth-switch");
-      const modeIsSignup = document.querySelector("#auth-submit")?.textContent === "Create account";
-      if (modeIsSignup !== signup) switchButton?.click();
-      const backdrop = document.querySelector("#auth-backdrop");
-      if (backdrop) backdrop.style.display = "grid";
-      const target = document.querySelector(signup ? "#auth-full-name" : "#auth-email");
-      target?.focus();
+      window.postpilotOpenAuth(Boolean(signupButton));
     }, true);
 
     addBulkCaptionField();
