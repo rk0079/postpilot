@@ -47,7 +47,7 @@
           <button type="button" class="pro-button">Explore Pro <i data-lucide="arrow-up-right"></i></button>
         </div>
         <button type="button" class="profile-row">
-          <span class="avatar avatar-maya">PP</span>
+          <span class="avatar avatar-maya user-initials" data-user-initials>—</span>
           <span class="profile-copy"><strong>My account</strong><small>Admin</small></span>
           <i data-lucide="more-horizontal"></i>
         </button>
@@ -63,13 +63,14 @@
               <button class="primary-button auth-entry-button" id="auth-signup-open" type="button">Sign up</button>
             </div>
             <button class="icon-button notification-button" type="button" aria-label="Notifications"><i data-lucide="bell"></i><span></span></button>
-            <button class="outline-button invite-button" type="button"><i data-lucide="user-plus"></i> Invite</button>
-            <span class="avatar avatar-maya large-avatar">PP</span>
+            <button class="outline-button invite-button" type="button" hidden><i data-lucide="user-plus"></i> Invite</button>
+            <span class="avatar avatar-maya large-avatar user-initials" data-user-initials>—</span>
           </div>
         </header>
 
         <div class="page-content">
-          <section class="platform-selector" aria-labelledby="platform-selector-title">
+          <section id="guest-auth-gate" class="guest-auth-gate" hidden><div class="section-kicker">WELCOME TO POSTPILOT</div><h2>Sign in to get started</h2><p>Choose your platform and manage your content after signing in.</p><button class="primary-button" type="button" id="guest-login-cta">Log in / Sign up</button></section>
+          <section class="platform-selector" aria-labelledby="platform-selector-title" hidden>
   <div class="platform-selector-head"><div class="section-kicker">CHOOSE YOUR PLATFORM</div><h2 id="platform-selector-title">What do you want to automate?</h2><p>Select a platform to keep your content workflow focused.</p></div>
   <div class="platform-options">
     <button class="platform-option active" type="button" data-platform="instagram" aria-pressed="true"><span class="platform-logo instagram-logo"><i data-lucide="instagram"></i></span><span><strong>Instagram</strong><small>Posts, reels &amp; bulk scheduling</small></span><span class="platform-check"><i data-lucide="check-circle-2"></i></span></button>
