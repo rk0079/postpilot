@@ -1115,20 +1115,15 @@
         backdrop.style.display = "grid";
         backdrop.setAttribute("aria-hidden", "false");
       }
-      document.body.classList.remove("auth-required");
       document.querySelector(signup ? "#auth-full-name" : "#auth-email")?.focus();
     };
-    ["#auth-login-open", "#landing-login"].forEach((selector) => {
-      document.querySelector(selector)?.addEventListener("click", (event) => {
-        event.preventDefault();
-        window.postpilotOpenAuth(false);
-      });
+    document.querySelector("#auth-login-open")?.addEventListener("click", (event) => {
+      event.preventDefault();
+      window.postpilotOpenAuth(false);
     });
-    ["#auth-signup-open", "#landing-signup"].forEach((selector) => {
-      document.querySelector(selector)?.addEventListener("click", (event) => {
-        event.preventDefault();
-        window.postpilotOpenAuth(true);
-      });
+    document.querySelector("#auth-signup-open")?.addEventListener("click", (event) => {
+      event.preventDefault();
+      window.postpilotOpenAuth(true);
     });
 
     addBulkCaptionField();
