@@ -969,7 +969,13 @@
     if (data?.error) throw new Error(data.error);
     return data;
   };
-  const invokeLinkedInAction = async (body) => {\n    if (!currentUser) throw new Error("Sign in to connect LinkedIn.");\n    const { data, error } = await client.functions.invoke("linkedin-oauth", { body });\n    if (error) throw new Error(error.message || "LinkedIn request failed.");\n    if (data?.error) throw new Error(data.error);\n    return data;\n  };\n  window.postpilotWorkspace = {
+  const invokeLinkedInAction = async (body) => {
+    if (!currentUser) throw new Error("Sign in to connect LinkedIn.");
+    const { data, error } = await client.functions.invoke("linkedin-oauth", { body });
+    if (error) throw new Error(error.message || "LinkedIn request failed.");
+    if (data?.error) throw new Error(data.error);
+    return data;
+  };\n  window.postpilotWorkspace = {
     getUser: () => currentUser ? ({ id: currentUser.id, email: currentUser.email || "", fullName: currentUser.user_metadata?.full_name || "", workspaceName: currentUser.user_metadata?.workspace_name || "" }) : null,
     getProfile: async () => {
       if (!currentUser) throw new Error("Sign in to manage your workspace.");
