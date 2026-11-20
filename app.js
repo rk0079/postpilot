@@ -898,106 +898,67 @@ document.addEventListener('DOMContentLoaded', () => {
   document.querySelector('.invite-button')?.addEventListener('click',()=>openWorkspacePage('team'));
 
 
-  // Real sidebar routing: Overview is a route, not just a scroll target.
-  const setActiveNav = (view) => {
-    document.querySelectorAll('.nav-item').forEach(nav => nav.classList.toggle('active', nav.dataset.view === view));
+  // Route-based navigation: each workspace view has its own URL while sharing the authenticated shell.
+  const routePaths = { overview:'/dashboard', calendar:'/calendar', library:'/content', analytics:'/analytics', inbox:'/inbox', team:'/team', settings:'/settings', linkedin:'/linkedin' };
+  const pathViews = Object.fromEntries(Object.entries(routePaths).map(([view,path])=>[path,view]));
+  const pathForView = (view) => routePaths[view] || '/dashboard';
+  const viewFromLocation = () => pathViews[window.location.pathname] || (window.location.hash.replace('#','') || 'overview');
+  const setActiveNav = (view) => { document.querySelectorAll('.nav-item').forEach(nav => nav.classList.toggle('active', nav.dataset.view === view)); };
+  const updateRoute = (view, replace=false) => {
+    const path = pathForView(view);
+    if(window.location.pathname !== path || window.location.hash) {
+      (replace ? history.replaceState : history.pushState).call(history,{view},'',path);
+    }
   };
-
-  const showOverview = ({updateUrl = true} = {}) => {
+  const showOverview = ({updateUrl=true} = {}) => {
     if (!fullCalendar.hidden) closeFullCalendar();
     analyticsView.hidden = true;
     workspaceViews.hidden = true;
     pageContent.hidden = false;
     setActiveNav('overview');
     const crumb = document.querySelector('.breadcrumbs strong');
-    if (crumb) crumb.textContent = 'Overview';
-    if (updateUrl && window.location.hash !== '#overview') {
-      history.pushState({view:'overview'}, '', '#overview');
-    }
+    if (crumb) crumb.textContent = 'Dashboard';
+    if (updateUrl) updateRoute('overview');
     window.scrollTo({top:0, behavior:'smooth'});
   };
-
-  const navigateSidebar = (view, item) => {
-    if (view === 'overview') {
-      showOverview();
-      return;
-    }
-
+  const navigateSidebar = (view, item, {updateUrl=true} = {}) => {
+    if (view === 'overview') { showOverview({updateUrl}); return; }
     if (view === 'calendar') {
-      workspaceViews.hidden = true;
-      setActiveNav('calendar');
-      closeLibraryPage();
-      openFullCalendar();
-      if (window.location.hash !== '#calendar') {
-        history.pushState({view:'calendar'}, '', '#calendar');
-      }
-      return;
+      workspaceViews.hidden = true; setActiveNav('calendar'); closeLibraryPage(); openFullCalendar();
+      if(updateUrl) updateRoute('calendar'); return;
     }
-
     if (view === 'analytics') {
-      workspaceViews.hidden = true;
-      if (!fullCalendar.hidden) closeFullCalendar();
-      closeLibraryPage();
-      openAnalyticsPage();
-      if (window.location.hash !== '#analytics') history.pushState({view:'analytics'}, '', '#analytics');
-      return;
+      workspaceViews.hidden = true; if (!fullCalendar.hidden) closeFullCalendar(); closeLibraryPage(); openAnalyticsPage();
+      if(updateUrl) updateRoute('analytics'); return;
     }
-
     if (view === 'library') {
-      workspaceViews.hidden = true;
-      analyticsView.hidden = true;
-      openLibraryPage();
-      if (window.location.hash !== '#library') {
-        history.pushState({view:'library'}, '', '#library');
-      }
-      return;
+      workspaceViews.hidden = true; analyticsView.hidden = true; closeFullCalendar(); openLibraryPage();
+      if(updateUrl) updateRoute('library'); return;
     }
-
     if (['inbox','team','settings'].includes(view)) {
-      openWorkspacePage(view);
-      if (window.location.hash !== '#' + view) history.pushState({view}, '', '#' + view);
-      return;
+      openWorkspacePage(view); if(updateUrl) updateRoute(view); return;
     }
-
-    workspaceViews.hidden = true;
-    if (!fullCalendar.hidden) closeFullCalendar();
-    analyticsView.hidden = true;
-    closeLibraryPage();
-    setActiveNav(view);
-
+    if(view === 'linkedin') {
+      workspaceViews.hidden = true; analyticsView.hidden = true; closeFullCalendar(); closeLibraryPage();
+      setActiveNav('linkedin'); pageContent.hidden = false;
+      document.querySelector('#linkedin-workspace')?.scrollIntoView({behavior:'smooth',block:'start'});
+      if(updateUrl) updateRoute('linkedin'); return;
+    }
+    workspaceViews.hidden = true; if(!fullCalendar.hidden) closeFullCalendar(); analyticsView.hidden = true; closeLibraryPage(); setActiveNav(view);
     const crumb = document.querySelector('.breadcrumbs strong');
-    if (crumb) crumb.textContent = item.querySelector('span:nth-child(2)')?.textContent || view;
-
-    // Library gets its own route foundation; the full Library page comes next.
-    if (view === 'library') {
-      document.querySelector('.recent-panel')?.scrollIntoView({behavior:'smooth', block:'start'});
-      if (window.location.hash !== '#library') {
-        history.pushState({view:'library'}, '', '#library');
-      }
-      return;
-    }
-
-    showToast('This section is not available in this workspace.');
+    if (crumb) crumb.textContent = item?.querySelector('span:nth-child(2)')?.textContent || view;
+    showToast('This section is not available yet.');
   };
-
-  document.querySelectorAll('.nav-item').forEach((item) => {
-    item.addEventListener('click', () => navigateSidebar(item.dataset.view, item));
-  });
-
+  document.querySelectorAll('.nav-item').forEach(item => item.addEventListener('click', () => navigateSidebar(item.dataset.view,item)));
   window.addEventListener('popstate', () => {
-    const view = window.location.hash.replace('#','') || 'overview';
-    const item = document.querySelector(`.nav-item[data-view="${view}"]`);
-    if (item) navigateSidebar(view, item);
-    else showOverview({updateUrl:false});
+    const view = viewFromLocation();
+    const item = document.querySelector('.nav-item[data-view="'+view+'"]');
+    if(item) navigateSidebar(view,item,{updateUrl:false}); else showOverview({updateUrl:false});
   });
-
-  if (!window.location.hash) {
-    history.replaceState({view:'overview'}, '', '#overview');
-  } else {
-    const initialView = window.location.hash.replace('#', '');
-    const initialItem = document.querySelector('.nav-item[data-view="' + initialView + '"]');
-    if (initialItem && initialView !== 'overview') navigateSidebar(initialView, initialItem);
-  }
+  const initialView = viewFromLocation();
+  if(!routePaths[initialView]) history.replaceState({view:'overview'},'','/dashboard');
+  else if(initialView !== 'overview') navigateSidebar(initialView,document.querySelector('.nav-item[data-view="'+initialView+'"]'),{updateUrl:false});
+  else showOverview({updateUrl:false});
   document.querySelector('#full-calendar-create')?.addEventListener('click',()=>openComposerForDate(calendarDate));
   document.querySelector('#calendar-prev')?.addEventListener('click',()=>{if(calendarMode==='month')calendarDate=new Date(calendarDate.getFullYear(),calendarDate.getMonth()-1,1);else{calendarDate.setDate(calendarDate.getDate()-7);}renderFullCalendar();});
   document.querySelector('#calendar-next')?.addEventListener('click',()=>{if(calendarMode==='month')calendarDate=new Date(calendarDate.getFullYear(),calendarDate.getMonth()+1,1);else{calendarDate.setDate(calendarDate.getDate()+7);}renderFullCalendar();});
