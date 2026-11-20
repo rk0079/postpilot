@@ -94,7 +94,8 @@ document.addEventListener('DOMContentLoaded', () => {
     if(!posts.length){list.innerHTML='<div class="linkedin-empty">No LinkedIn posts yet. Create a draft or add posts using the bulk planner.</div>';return;}
     list.innerHTML=posts.map(post=>'<article class="linkedin-post-card"><div class="linkedin-post-card-top"><strong>'+safeText(post.title)+'</strong><span class="linkedin-post-badge '+post.status+'">'+(post.status==='draft'?'Draft':'Scheduled')+'</span></div><p>'+safeText(post.text)+'</p><div class="linkedin-post-meta">'+(post.status==='scheduled'?'Planned for ':'Draft · ')+(post.status==='scheduled'?safeText(post.date)+' at '+safeText(post.time):safeText(post.date))+'</div><button type="button" class="row-menu" data-li-delete="'+safeText(post.id)+'">Delete</button></article>').join('');
   }
-  setPlatform(activePlatform === 'linkedin' ? 'linkedin' : 'instagram');\n  refreshLinkedInStatus();
+  setPlatform(activePlatform === 'linkedin' ? 'linkedin' : 'instagram');
+  refreshLinkedInStatus();
 });
 document.addEventListener('DOMContentLoaded', () => {
   if (window.lucide) window.lucide.createIcons();
