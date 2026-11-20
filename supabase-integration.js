@@ -1118,13 +1118,17 @@
       document.body.classList.remove("auth-required");
       document.querySelector(signup ? "#auth-full-name" : "#auth-email")?.focus();
     };
-    document.querySelector("#auth-login-open")?.addEventListener("click", (event) => {
-      event.preventDefault();
-      window.postpilotOpenAuth(false);
+    ["#auth-login-open", "#landing-login"].forEach((selector) => {
+      document.querySelector(selector)?.addEventListener("click", (event) => {
+        event.preventDefault();
+        window.postpilotOpenAuth(false);
+      });
     });
-    document.querySelector("#auth-signup-open")?.addEventListener("click", (event) => {
-      event.preventDefault();
-      window.postpilotOpenAuth(true);
+    ["#auth-signup-open", "#landing-signup"].forEach((selector) => {
+      document.querySelector(selector)?.addEventListener("click", (event) => {
+        event.preventDefault();
+        window.postpilotOpenAuth(true);
+      });
     });
 
     addBulkCaptionField();
@@ -1139,8 +1143,6 @@
       await finishSignIn();
     } else {
       showGuestMode();
-      // Automatically open the login dialog for signed-out visitors on page load.
-      window.postpilotOpenAuth(false);
     }
     authClient.auth.onAuthStateChange((event, session) => {
       if (event === "PASSWORD_RECOVERY" || new URLSearchParams(window.location.hash.replace(/^#/, "")).get("type") === "recovery" || new URLSearchParams(window.location.search).get("reset_password") === "1") {
