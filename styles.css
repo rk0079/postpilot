@@ -769,5 +769,4 @@ button:focus-visible, input:focus-visible, textarea:focus-visible { outline: 3px
 
 
 /* Keep the application inaccessible until authentication succeeds. */
-body.auth-required .app-shell { visibility: hidden !important; pointer-events: none !important; }
 body.auth-required #auth-backdrop { display: grid !important; }
