@@ -303,16 +303,27 @@
 
   async function finishSignIn() {
     if (!currentUser) return;
-    const fullName = currentUser.user_metadata?.full_name || currentUser.user_metadata?.name || "";
-    const workspaceName = currentUser.user_metadata?.workspace_name || "";
-    const { data: savedProfile, error: profileReadError } = await client.from("profiles").select("full_name,workspace_name").eq("id", currentUser.id).maybeSingle();
-    if (profileReadError) { toast("Could not load your profile: " + profileReadError.message); return; }
-    if (!savedProfile && (!fullName.trim() || !workspaceName.trim())) { showProfileSetup(); return; }
-    const profileData = savedProfile || { full_name: fullName.trim(), workspace_name: workspaceName.trim() };
-    const { error: profileWriteError } = await client.from("profiles").upsert({ id: currentUser.id, full_name: profileData.full_name, workspace_name: profileData.workspace_name, updated_at: new Date().toISOString() });
-    if (profileWriteError) { toast("Could not save your profile: " + profileWriteError.message); return; }
+    // Unlock the dashboard immediately after Supabase confirms the user.
+    // Profile reads/writes are optional enrichment and must never block authentication.
+    const fallbackName = currentUser.user_metadata?.full_name || currentUser.user_metadata?.name || (currentUser.email || "User").split("@")[0];
+    const fallbackWorkspace = currentUser.user_metadata?.workspace_name || "My workspace";
+    let profileData = { full_name: fallbackName, workspace_name: fallbackWorkspace };
+    try {
+      const { data: savedProfile, error: profileReadError } = await client.from("profiles").select("full_name,workspace_name").eq("id", currentUser.id).maybeSingle();
+      if (profileReadError) console.warn("PostPilot profile read skipped; using account metadata:", profileReadError.message);
+      if (savedProfile?.full_name || savedProfile?.workspace_name) {
+        profileData = {
+          full_name: savedProfile.full_name || fallbackName,
+          workspace_name: savedProfile.workspace_name || fallbackWorkspace
+        };
+      }
+      const { error: profileWriteError } = await client.from("profiles").upsert({ id: currentUser.id, full_name: profileData.full_name, workspace_name: profileData.workspace_name, updated_at: new Date().toISOString() });
+      if (profileWriteError) console.warn("PostPilot profile save skipped:", profileWriteError.message);
+    } catch (profileError) {
+      console.warn("PostPilot profile setup skipped:", profileError?.message || profileError);
+    }
     document.body.classList.remove("auth-required");
-    await loadReminderPreferences();
+    await loadReminderPreferences().catch(error => console.warn("Reminder preferences unavailable:", error));
     const backdrop = document.querySelector("#auth-backdrop");
     if (backdrop) backdrop.style.display = "none";
     const authEntryActions = document.querySelector("#auth-entry-actions");
@@ -324,7 +335,6 @@
     document.querySelector(".quick-action[data-action=\"invite\"]")?.removeAttribute("hidden");
     const initials = String(profileData.full_name || "").trim().split(/\\s+/).filter(Boolean).slice(0,2).map(part => part.charAt(0).toUpperCase()).join("") || "U";
     document.querySelectorAll("[data-user-initials]").forEach(el => el.textContent = initials);
-    // A prior guest render may have inserted this banner; remove it as soon as auth is restored.
     document.querySelector("#guest-preview-note")?.remove();
     const profileRow = document.querySelector(".profile-row");
     if (profileRow && !document.querySelector("#auth-signout")) {
@@ -342,16 +352,14 @@
       profileRow.insertAdjacentElement("afterend", signout);
     }
     const profile = document.querySelector(".profile-copy");
-    if (profile) {
-      profile.innerHTML = "<strong>" + escapeHtml(profileData.full_name) + "</strong><small>" + escapeHtml(profileData.workspace_name) + "</small>";
-    }
+    if (profile) profile.innerHTML = "<strong>" + escapeHtml(profileData.full_name) + "</strong><small>" + escapeHtml(profileData.workspace_name) + "</small>";
     ensureInstagramPanel();
     refreshInstagramStatus();
     const workspace = document.querySelector(".workspace-meta");
     if (workspace) workspace.innerHTML = "<strong>" + escapeHtml(profileData.workspace_name) + "</strong><small>Private workspace</small>";
     await loadPosts();
     window.dispatchEvent(new CustomEvent("postpilot:auth-ready"));
-    toast("Connected to Supabase — your posts can now be saved.");
+    toast("Welcome to PostPilot — dashboard ready.");
   }
 
   async function loadPosts() {
