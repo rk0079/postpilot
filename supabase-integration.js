@@ -1058,7 +1058,8 @@
     getLinkedInStatus: async () => invokeLinkedInAction({action:"status"}),
     connectLinkedIn: async () => { const result = await invokeLinkedInAction({action:"connect"}); if (!result.url) throw new Error("No LinkedIn authorization URL returned."); window.location.href = result.url; },
     disconnectLinkedIn: async () => invokeLinkedInAction({action:"disconnect"}),
-    publishLinkedIn: async (text) => invokeLinkedInAction({action:"publish", text}),\n    getInstagramStatus: async () => invokeInstagramAction({action:"status"}),
+    publishLinkedIn: async (text) => invokeLinkedInAction({action:"publish", text}),
+    getInstagramStatus: async () => invokeInstagramAction({action:"status"}),
     connectInstagram: async () => {
       const result = await invokeInstagramAction({action:"connect-url"});
       if (!result.url) throw new Error("Instagram did not return a connection URL.");
