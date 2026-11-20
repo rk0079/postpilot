@@ -80,7 +80,8 @@
       showAuthError("");
       try {
         const redirectTo = window.location.origin + window.location.pathname + "?reset_password=1";
-        const authClient = await ensureClient();\n        const { error } = await authClient.auth.resetPasswordForEmail(email, { redirectTo });
+        const authClient = await ensureClient();
+        const { error } = await authClient.auth.resetPasswordForEmail(email, { redirectTo });
         if (error) throw error;
         showAuthError("If an account exists for this email, a password reset link has been sent. Check your inbox and spam folder.");
         const errorBox = document.querySelector("#auth-error");
