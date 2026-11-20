@@ -233,6 +233,7 @@
 
   function showGuestMode() {
     currentUser = null;
+    document.body.classList.add("auth-required");
     const authEntryActions = document.querySelector("#auth-entry-actions");
     if (authEntryActions) authEntryActions.hidden = false;
     document.querySelector("#guest-auth-gate")?.removeAttribute("hidden");
@@ -280,6 +281,7 @@
 
   async function finishSignIn() {
     if (!currentUser) return;
+    document.body.classList.remove("auth-required");
     const fullName = currentUser.user_metadata?.full_name || currentUser.user_metadata?.name || "";
     const workspaceName = currentUser.user_metadata?.workspace_name || "";
     const { data: savedProfile, error: profileReadError } = await client.from("profiles").select("full_name,workspace_name").eq("id", currentUser.id).maybeSingle();
