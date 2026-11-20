@@ -1109,6 +1109,8 @@
       await finishSignIn();
     } else {
       showGuestMode();
+      // Automatically open the login dialog for signed-out visitors on page load.
+      window.postpilotOpenAuth(false);
     }
     client.auth.onAuthStateChange((event, session) => {
       if (event === "PASSWORD_RECOVERY" || new URLSearchParams(window.location.hash.replace(/^#/, "")).get("type") === "recovery" || new URLSearchParams(window.location.search).get("reset_password") === "1") {
