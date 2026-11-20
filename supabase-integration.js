@@ -255,16 +255,16 @@
 
   function showGuestMode() {
     currentUser = null;
-    document.body.classList.add("auth-required");
+    document.body.classList.remove("auth-required");
     const authEntryActions = document.querySelector("#auth-entry-actions");
     if (authEntryActions) authEntryActions.hidden = false;
-    document.querySelector("#guest-auth-gate")?.removeAttribute("hidden");
-    document.querySelector("#platform-selector")?.setAttribute("hidden", "");
-    document.querySelector(".platform-selector")?.setAttribute("hidden", "");
-    document.querySelector("#linkedin-workspace")?.setAttribute("hidden", "");
-    document.querySelectorAll(".welcome-row,.metric-grid,.workspace-grid,.bottom-grid").forEach(el => el.setAttribute("hidden", ""));
-    document.querySelector(".invite-button")?.setAttribute("hidden", "");
-    document.querySelector(".quick-action[data-action=\"invite\"]")?.setAttribute("hidden", "");
+    document.querySelector("#guest-auth-gate")?.setAttribute("hidden", "");
+    document.querySelector("#platform-selector")?.removeAttribute("hidden");
+    document.querySelector(".platform-selector")?.removeAttribute("hidden");
+    document.querySelector("#linkedin-workspace")?.removeAttribute("hidden");
+    document.querySelectorAll(".welcome-row,.metric-grid,.workspace-grid,.bottom-grid").forEach(el => el.removeAttribute("hidden"));
+    document.querySelector(".invite-button")?.removeAttribute("hidden");
+    document.querySelector(".quick-action[data-action=\"invite\"]")?.removeAttribute("hidden");
     document.querySelectorAll("[data-user-initials]").forEach(el => el.textContent = "—");
     const guestGateButton = document.querySelector("#guest-login-cta");
     if (guestGateButton && !guestGateButton.dataset.bound) { guestGateButton.dataset.bound = "1"; guestGateButton.addEventListener("click", () => { buildAuth(); isSignup = false; document.querySelector("#auth-title").textContent = "Welcome to PostPilot"; document.querySelector("#auth-backdrop").style.display = "grid"; }); }
