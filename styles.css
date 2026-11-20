@@ -802,3 +802,22 @@ body.auth-required #auth-landing{display:block}
 .landing-footer{max-width:1240px;margin:auto;border-top:1px solid #e7e4ef;padding:20px 0;display:flex;justify-content:space-between;color:#9b97a8;font-size:12px}
 @media(max-width:850px){.landing-content{grid-template-columns:1fr;gap:30px;padding:40px 0}.landing-feature-grid{grid-template-columns:1fr 1fr}.landing-feature-wide{grid-column:span 2}.landing-hero h1{letter-spacing:-2px}.landing-nav{height:68px}}
 @media(max-width:520px){.auth-landing{padding:0 16px}.landing-nav-note{display:none}.landing-content{padding:34px 0}.landing-feature-grid{grid-template-columns:1fr}.landing-feature-wide{grid-column:auto}.landing-footer{gap:12px;flex-direction:column}.landing-feature{padding:20px}}
+
+
+/* PostPilot runtime health panel */
+.postpilot-health { margin: 16px 0 22px; border: 1px solid var(--line); border-radius: 14px; background: #fff; padding: 16px 18px; }
+.postpilot-health-head { display:flex; justify-content:space-between; align-items:center; gap:12px; }
+.postpilot-health-title { font-size:12px; font-weight:700; color:var(--ink); display:flex; align-items:center; gap:8px; }
+.postpilot-health-title .health-dot { width:8px;height:8px;border-radius:50%;background:#a8a5b3; }
+.postpilot-health-title .health-dot.ok { background:#42a77d; }
+.postpilot-health-title .health-dot.warn { background:#e3a04b; }
+.postpilot-health-title .health-dot.fail { background:#dc6d6d; }
+.postpilot-health-subtitle { margin-top:5px;color:var(--muted);font-size:10px; }
+.postpilot-health-check { border:1px solid #e8e6ee;background:#fff;border-radius:8px;padding:8px 11px;font-size:10px;font-weight:600;color:#686579; }
+.postpilot-health-check:disabled { opacity:.55;cursor:wait; }
+.postpilot-health-results { display:grid; grid-template-columns:repeat(3,minmax(0,1fr)); gap:9px; margin-top:13px; }
+.postpilot-health-item { border:1px solid #f0eef4;background:#fafafd;border-radius:9px;padding:10px;min-width:0; }
+.postpilot-health-item strong { display:block;font-size:10px;color:#4d4a60;margin-bottom:4px; }
+.postpilot-health-item span { display:block;font-size:10px;color:#8a8798;line-height:1.45;overflow-wrap:anywhere; }
+.postpilot-health-foot { margin-top:9px;font-size:9px;color:#aaa7b6; }
+@media(max-width:700px){.postpilot-health-results{grid-template-columns:1fr}.postpilot-health-head{align-items:flex-start}}
