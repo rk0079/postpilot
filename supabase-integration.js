@@ -1137,6 +1137,24 @@
     document.querySelector("#auth-signup-open")?.addEventListener("click", (event) => { event.preventDefault(); window.postpilotOpenAuth(true); });
  */
 
+    // Active unified auth launcher (the legacy launcher block above is intentionally archived).
+    window.postpilotOpenAuth = (signup = false) => {
+      buildAuth();
+      const switchButton = document.querySelector("#auth-switch");
+      if (isSignup !== Boolean(signup)) switchButton?.click();
+      const backdrop = document.querySelector("#auth-backdrop");
+      if (backdrop) { backdrop.style.display = "grid"; backdrop.setAttribute("aria-hidden", "false"); }
+      document.querySelector(signup ? "#auth-full-name" : "#auth-email")?.focus();
+    };
+    document.querySelector("#auth-login-open")?.addEventListener("click", (event) => {
+      event.preventDefault();
+      window.postpilotOpenAuth(false);
+    });
+    document.querySelector("#auth-signup-open")?.addEventListener("click", (event) => {
+      event.preventDefault();
+      window.postpilotOpenAuth(true);
+    });
+
     addBulkCaptionField();
     bindRealScheduling();
     bindPostActions();
