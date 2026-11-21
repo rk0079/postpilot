@@ -383,6 +383,7 @@ document.addEventListener('DOMContentLoaded', () => {
             <div class="library-item-actions">
               <button type="button" class="row-menu publish-action" data-library-copy="${escapeHtml(post.id)}">Copy caption</button>
               <button type="button" class="row-menu" data-library-instagram="${escapeHtml(post.id)}">Open Instagram</button>
+              ${post.status === 'scheduled' ? '<button type="button" class="row-menu cancel-schedule-action" data-library-cancel="'+escapeHtml(post.id)+'">Cancel scheduled post</button>' : ''}
             </div>
           </article>`;
         }).join('');
@@ -460,6 +461,17 @@ document.addEventListener('DOMContentLoaded', () => {
     });
     renderUploadQueue();
     libraryView.onclick = async (event) => {
+      const cancel = event.target.closest('[data-library-cancel]');
+      if (cancel) {
+        const post = libraryPosts.find(p => p.id === cancel.dataset.libraryCancel);
+        if (!post || post.status !== 'scheduled') return;
+        if (!confirm('Cancel this scheduled post? It will be removed from your schedule.')) return;
+        cancel.disabled = true;
+        try { await window.postpilotWorkspace.cancelScheduledPost(post.id); showToast('Scheduled post cancelled.'); }
+        catch (error) { showToast(error.message || 'Could not cancel scheduled post.'); }
+        finally { cancel.disabled = false; }
+        return;
+      }
       const copy = event.target.closest('[data-library-copy]');
       const instagram = event.target.closest('[data-library-instagram]');
       if (copy) {
