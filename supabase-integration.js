@@ -1107,6 +1107,19 @@
     getLinkedInScheduledPosts: async () => { if(!currentUser)throw new Error("Sign in to load scheduled LinkedIn posts.");const {data,error}=await client.from("linkedin_scheduled_posts").select("id,text,scheduled_at,status,published_at,linkedin_post_id,error_message,attempts,created_at").eq("user_id",currentUser.id).order("scheduled_at",{ascending:true});if(error)throw error;return data||[]; },
     deleteLinkedInScheduledPost: async (id) => { if(!currentUser)throw new Error("Sign in to remove scheduled LinkedIn posts.");const {error}=await client.from("linkedin_scheduled_posts").delete().eq("id",id).eq("user_id",currentUser.id).eq("status","queued");if(error)throw error;return true; },
     clearLinkedInQueue: async () => { if(!currentUser)throw new Error("Sign in to clear the LinkedIn queue.");const {error}=await client.from("linkedin_scheduled_posts").delete().eq("user_id",currentUser.id).eq("status","queued");if(error)throw error;return true; },
+    uploadMedia: async (file) => {
+      if (!currentUser) throw new Error("Sign in before uploading media.");
+      if (!file || !(file.type.startsWith("image/") || file.type.startsWith("video/"))) throw new Error("Choose an image or video file.");
+      const safeName = file.name.normalize("NFKD").replace(/[^a-zA-Z0-9._-]+/g, "-").slice(-120) || "upload";
+      const path = currentUser.id + "/" + crypto.randomUUID() + "-" + safeName;
+      const { error: uploadError } = await client.storage.from("post-media").upload(path, file, { cacheControl: "3600", upsert: false, contentType: file.type || "application/octet-stream" });
+      if (uploadError) throw uploadError;
+      const payload = { user_id: currentUser.id, title: file.name.replace(/\.[^.]+$/, "") || "Uploaded media", content_type: file.type.startsWith("video/") ? "reel" : "image", caption: "", hashtags: [], media_url: path, original_filename: file.name, status: "draft", scheduled_at: null };
+      const { error } = await client.from("posts").insert(payload);
+      if (error) { await client.storage.from("post-media").remove([path]); throw error; }
+      await loadPosts();
+      return true;
+    },
     getInstagramStatus: async () => invokeInstagramAction({action:"status"}),
     connectInstagram: async () => {
       const result = await invokeInstagramAction({action:"connect-url"});
