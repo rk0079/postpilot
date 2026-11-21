@@ -802,3 +802,6 @@ body.auth-required #auth-landing{display:block}
 .landing-footer{max-width:1240px;margin:auto;border-top:1px solid #e7e4ef;padding:20px 0;display:flex;justify-content:space-between;color:#9b97a8;font-size:12px}
 @media(max-width:850px){.landing-content{grid-template-columns:1fr;gap:30px;padding:40px 0}.landing-feature-grid{grid-template-columns:1fr 1fr}.landing-feature-wide{grid-column:span 2}.landing-hero h1{letter-spacing:-2px}.landing-nav{height:68px}}
 @media(max-width:520px){.auth-landing{padding:0 16px}.landing-nav-note{display:none}.landing-content{padding:34px 0}.landing-feature-grid{grid-template-columns:1fr}.landing-feature-wide{grid-column:auto}.landing-footer{gap:12px;flex-direction:column}.landing-feature{padding:20px}}
+
+/* LinkedIn Supabase queue status styles */
+.linkedin-post-badge.queued{background:#e8f1ff;color:#245ca6}.linkedin-post-badge.publishing{background:#fff3d6;color:#8b6400}.linkedin-post-badge.published{background:#e3f6ed;color:#267650}.linkedin-post-badge.failed{background:#ffe5e2;color:#b3382c}.linkedin-error{color:#b3382c!important;white-space:pre-wrap;overflow-wrap:anywhere}
