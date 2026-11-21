@@ -1107,6 +1107,13 @@
     getLinkedInScheduledPosts: async () => { if(!currentUser)throw new Error("Sign in to load scheduled LinkedIn posts.");const {data,error}=await client.from("linkedin_scheduled_posts").select("id,text,scheduled_at,status,published_at,linkedin_post_id,error_message,attempts,created_at").eq("user_id",currentUser.id).order("scheduled_at",{ascending:true});if(error)throw error;return data||[]; },
     deleteLinkedInScheduledPost: async (id) => { if(!currentUser)throw new Error("Sign in to remove scheduled LinkedIn posts.");const {error}=await client.from("linkedin_scheduled_posts").delete().eq("id",id).eq("user_id",currentUser.id).eq("status","queued");if(error)throw error;return true; },
     clearLinkedInQueue: async () => { if(!currentUser)throw new Error("Sign in to clear the LinkedIn queue.");const {error}=await client.from("linkedin_scheduled_posts").delete().eq("user_id",currentUser.id).eq("status","queued");if(error)throw error;return true; },
+    cancelScheduledPost: async (postId) => {
+      if (!currentUser) throw new Error("Sign in to manage scheduled posts.");
+      const { error } = await client.from("posts").delete().eq("id", postId).eq("user_id", currentUser.id).eq("status", "scheduled");
+      if (error) throw error;
+      await loadPosts();
+      return true;
+    },
     uploadMedia: async (file) => {
       if (!currentUser) throw new Error("Sign in before uploading media.");
       if (!file || !(file.type.startsWith("image/") || file.type.startsWith("video/"))) throw new Error("Choose an image or video file.");
