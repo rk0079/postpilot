@@ -560,6 +560,8 @@
       toast("Please reselect the files so every post has its own schedule.");
       return;
     }
+    const selectedPlatforms = [document.querySelector("#bulk-platform-instagram")?.checked ? "instagram" : null, document.querySelector("#bulk-platform-linkedin")?.checked ? "linkedin" : null].filter(Boolean);
+    if (!selectedPlatforms.length) { toast("Select Instagram, LinkedIn, or both before scheduling."); return; }
     const sharedCaption = document.querySelector("#bulk-caption")?.value.trim() || "";
     const schedules = [];
     for (let index = 0; index < files.length; index++) {
@@ -583,22 +585,21 @@
     const batchId = crypto.randomUUID();
     const uploadedPaths = [];
     const rows = [];
+    const linkedinRows = schedules.map(item => ({ text: item.caption, scheduledAt: item.dateTime.toISOString() }));
+    if (selectedPlatforms.includes("linkedin") && linkedinRows.some(item => !item.text.trim())) { toast("Add a caption to every LinkedIn post before scheduling."); return; }
     for (let index = 0; index < files.length; index++) {
       const file = files[index];
-      const safeName = file.name.normalize("NFKD").replace(/[^a-zA-Z0-9._-]+/g, "-").slice(-120) || "upload";
-      const path = currentUser.id + "/" + crypto.randomUUID() + "-" + safeName;
-      const { error: uploadError } = await client.storage.from("post-media").upload(path, file, {
-        cacheControl: "3600", upsert: false, contentType: file.type || "application/octet-stream"
-      });
-      if (uploadError) {
-        if (uploadedPaths.length) await client.storage.from("post-media").remove(uploadedPaths);
-        toast("Bulk media upload failed for " + file.name + ": " + uploadError.message);
-        return;
+      let path = null;
+      if (selectedPlatforms.includes("instagram")) {
+        const safeName = file.name.normalize("NFKD").replace(/[^a-zA-Z0-9._-]+/g, "-").slice(-120) || "upload";
+        path = currentUser.id + "/" + crypto.randomUUID() + "-" + safeName;
+        const { error: uploadError } = await client.storage.from("post-media").upload(path, file, { cacheControl: "3600", upsert: false, contentType: file.type || "application/octet-stream" });
+        if (uploadError) { if (uploadedPaths.length) await client.storage.from("post-media").remove(uploadedPaths); toast("Bulk media upload failed for " + file.name + ": " + uploadError.message); return; }
+        uploadedPaths.push(path);
       }
-      uploadedPaths.push(path);
       const isVideo = file.type.startsWith("video/");
       const caption = schedules[index].caption;
-      rows.push({
+      if (selectedPlatforms.includes("instagram")) rows.push({
         user_id: currentUser.id,
         title: schedules[index].title,
         content_type: isVideo ? "reel" : "photo",
@@ -611,11 +612,13 @@
         batch_id: batchId
       });
     }
-    const { error } = await client.from("posts").insert(rows);
-    if (error) {
-      await client.storage.from("post-media").remove(uploadedPaths);
-      toast("Bulk save failed: " + error.message);
-      return;
+    if (selectedPlatforms.includes("instagram")) {
+      const { error } = await client.from("posts").insert(rows);
+      if (error) { await client.storage.from("post-media").remove(uploadedPaths); toast("Bulk save failed: " + error.message); return; }
+    }
+    if (selectedPlatforms.includes("linkedin")) {
+      try { await window.postpilotWorkspace.scheduleLinkedInBulk(linkedinRows); }
+      catch (error) { if (uploadedPaths.length) await client.storage.from("post-media").remove(uploadedPaths); toast("LinkedIn bulk scheduling failed: " + (error.message || "Please try again.")); return; }
     }
     document.querySelector("#modal-backdrop").hidden = true;
     document.body.style.overflow = "";
