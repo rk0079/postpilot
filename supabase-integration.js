@@ -424,7 +424,7 @@
             item.append(title, details);
             const actions = document.createElement("div");
             actions.className = "post-actions calendar-post-actions";
-            actions.innerHTML = `${post.approval_status === "failed" ? `<button class="row-menu publish-action" type="button" data-approve-publish="${escapeHtml(post.id)}" data-scheduled-at="${escapeHtml(post.scheduled_at || "")}">Retry publishing</button>` : ""}<button class="row-menu publish-action" type="button" data-publish-manually="${escapeHtml(post.id)}" data-caption-text="${escapeHtml(post.caption || "")}" data-hashtags-text="${escapeHtml(Array.isArray(post.hashtags) ? post.hashtags.map((tag) => "#" + String(tag).replace(/^#+/, "")).join(" ") : "")}">Publish manually</button><button class="row-menu" type="button" data-copy-caption="${escapeHtml(post.id)}">Copy caption</button>${post.media_url ? `<button class="row-menu" type="button" data-save-media="${escapeHtml(post.id)}">Open media</button>` : ""}<button class="row-menu" type="button" data-open-instagram="${escapeHtml(post.id)}">Open Instagram</button>`;
+            actions.innerHTML = `${post.approval_status === "failed" ? `<button class="row-menu publish-action" type="button" data-approve-publish="${escapeHtml(post.id)}" data-scheduled-at="${escapeHtml(post.scheduled_at || "")}">Retry publishing</button>` : ""}<button class="row-menu publish-action" type="button" data-publish-manually="${escapeHtml(post.id)}" data-caption-text="${escapeHtml(post.caption || "")}" data-hashtags-text="${escapeHtml(Array.isArray(post.hashtags) ? post.hashtags.map((tag) => "#" + String(tag).replace(/^#+/, "")).join(" ") : "")}">Publish manually</button><button class="row-menu" type="button" data-copy-caption="${escapeHtml(post.id)}">Copy caption</button>${post.media_url ? `<button class="row-menu" type="button" data-save-media="${escapeHtml(post.id)}">Open media</button>` : ""}<button class="row-menu" type="button" data-open-instagram="${escapeHtml(post.id)}">Open Instagram</button>${post.status === "scheduled" ? `<button class="row-menu cancel-schedule-action" type="button" data-calendar-cancel="${escapeHtml(post.id)}">Cancel schedule</button>` : ""}`;
             item.appendChild(actions);
             list.appendChild(item);
           });
@@ -828,6 +828,23 @@
       const mediaButton = event.target.closest("[data-save-media]");
       const publishButton = event.target.closest("[data-publish-manually]");
       const approveButton = event.target.closest("[data-approve-publish]");
+      const calendarCancelButton = event.target.closest("[data-calendar-cancel]");
+      if (calendarCancelButton) {
+        if (!currentUser) { toast("Sign in to manage scheduled posts."); return; }
+        if (!window.confirm("Cancel this scheduled post? It will be removed from your schedule.")) return;
+        calendarCancelButton.disabled = true;
+        calendarCancelButton.textContent = "Cancelling…";
+        try {
+          await window.postpilotWorkspace.cancelScheduledPost(calendarCancelButton.dataset.calendarCancel);
+          toast("Scheduled post cancelled.");
+          await loadPosts();
+        } catch (error) {
+          toast(error.message || "Could not cancel scheduled post.");
+          calendarCancelButton.disabled = false;
+          calendarCancelButton.textContent = "Cancel schedule";
+        }
+        return;
+      }
       if (!copyButton && !openButton && !remindButton && !mediaButton && !publishButton && !approveButton) return;
       if (approveButton) {
         if (!currentUser) { toast("Sign in before approving a post."); return; }
