@@ -346,6 +346,12 @@ document.addEventListener('DOMContentLoaded', () => {
           <div class="library-summary-card"><span>Drafts</span><strong>${drafts}</strong></div>
           <div class="library-summary-card"><span>Published</span><strong>${published}</strong></div>
         </div>
+        <section class="upload-center panel" id="postpilot-upload-center">
+          <div class="upload-center-heading"><div><div class="section-kicker">MEDIA ENGINE</div><h2>Upload Center</h2><p>Upload now. Organize and schedule whenever you're ready.</p></div><div class="upload-center-stats"><strong id="upload-center-count">0</strong><span>in this batch</span></div></div>
+          <div class="upload-drop-zone" id="upload-center-drop"><i data-lucide="cloud-upload"></i><strong>Drop images or videos here</strong><span>or choose files · JPG, PNG, WEBP, MP4, MOV</span><button type="button" class="secondary-button" id="upload-center-browse">Choose files</button><input type="file" id="upload-center-input" multiple accept="image/*,video/*" hidden></div>
+          <div class="upload-center-toolbar"><div><strong id="upload-center-status">Ready for uploads</strong><small>Up to 3 files upload at a time</small></div><button type="button" class="secondary-button" id="upload-center-clear">Clear completed</button></div>
+          <div class="upload-center-queue" id="upload-center-queue"><div class="upload-center-empty">Your upload queue is empty.</div></div>
+        </section>
         <div class="library-toolbar">
           <label class="library-search"><i data-lucide="search"></i><input id="library-search-input" type="search" placeholder="Search content..." aria-label="Search content"></label>
           <select id="library-status-filter" aria-label="Filter content"><option value="all">All status</option><option value="scheduled">Scheduled</option><option value="draft">Drafts</option><option value="published">Published</option></select>
@@ -390,6 +396,69 @@ document.addEventListener('DOMContentLoaded', () => {
       paint();
     });
     document.querySelector('#library-create')?.addEventListener('click', () => openModal());
+    // Upload Center: a session queue that remains active while navigating within PostPilot.
+    const uploadQueue = [];
+    let uploadBusy = false;
+    const queueNode = document.querySelector('#upload-center-queue');
+    const countNode = document.querySelector('#upload-center-count');
+    const statusNode = document.querySelector('#upload-center-status');
+    const dropNode = document.querySelector('#upload-center-drop');
+    const inputNode = document.querySelector('#upload-center-input');
+    const renderUploadQueue = () => {
+      if (countNode) countNode.textContent = String(uploadQueue.length);
+      if (!queueNode) return;
+      queueNode.innerHTML = uploadQueue.length ? uploadQueue.map((item, index) => {
+        const safeName = escapeHtml(item.file.name);
+        const statusText = item.status === 'uploaded' ? 'Uploaded to media library' : item.status === 'uploading' ? 'Uploading…' : item.status === 'failed' ? 'Failed — ' + escapeHtml(item.error || 'try again') : 'Waiting';
+        const preview = item.preview ? '<img class="upload-queue-thumb" src="' + item.preview + '" alt="">' : '<div class="upload-queue-thumb upload-queue-file"><i data-lucide="file-video"></i></div>';
+        return '<article class="upload-queue-row">' + preview + '<div class="upload-queue-info"><strong title="' + safeName + '">' + safeName + '</strong><small>' + (item.file.type || 'Media file') + ' · ' + Math.max(1,Math.round(item.file.size/1024)) + ' KB</small><span class="upload-queue-status ' + item.status + '">' + statusText + '</span></div><div class="upload-queue-actions">' + (item.status === 'failed' ? '<button type="button" class="row-menu" data-upload-retry="' + index + '">Retry</button>' : '') + (item.status === 'waiting' || item.status === 'failed' ? '<button type="button" class="row-menu" data-upload-remove="' + index + '">Remove</button>' : '') + '</div></article>';
+      }).join('') : '<div class="upload-center-empty">Your upload queue is empty.</div>';
+      if (window.lucide) window.lucide.createIcons();
+      if (statusNode) statusNode.textContent = uploadQueue.length ? uploadQueue.filter(x=>x.status==='uploaded').length + ' uploaded · ' + uploadQueue.filter(x=>x.status==='uploading').length + ' uploading · ' + uploadQueue.filter(x=>x.status==='waiting').length + ' waiting' : 'Ready for uploads';
+    };
+    const processUploadQueue = async () => {
+      if (uploadBusy) return;
+      uploadBusy = true;
+      const worker = async () => {
+        while (true) {
+          const item = uploadQueue.find(x => x.status === 'waiting');
+          if (!item) break;
+          item.status = 'uploading'; renderUploadQueue();
+          try {
+            await window.postpilotWorkspace.uploadMedia(item.file);
+            item.status = 'uploaded';
+          } catch (err) {
+            item.status = 'failed'; item.error = err?.message || 'Upload error';
+          }
+          renderUploadQueue();
+        }
+      };
+      await Promise.all([worker(),worker(),worker()]);
+      uploadBusy = false;
+      renderUploadQueue();
+    };
+    const addUploadFiles = (files) => {
+      Array.from(files || []).filter(file => file.type.startsWith('image/') || file.type.startsWith('video/')).forEach(file => {
+        const preview = file.type.startsWith('image/') ? URL.createObjectURL(file) : '';
+        uploadQueue.push({file,preview,status:'waiting',error:''});
+      });
+      renderUploadQueue(); processUploadQueue();
+    };
+    document.querySelector('#upload-center-browse')?.addEventListener('click',()=>inputNode?.click());
+    inputNode?.addEventListener('change',()=>{addUploadFiles(inputNode.files);inputNode.value='';});
+    dropNode?.addEventListener('dragover',event=>{event.preventDefault();dropNode.classList.add('dragging');});
+    dropNode?.addEventListener('dragleave',()=>dropNode.classList.remove('dragging'));
+    dropNode?.addEventListener('drop',event=>{event.preventDefault();dropNode.classList.remove('dragging');addUploadFiles(event.dataTransfer?.files);});
+    document.querySelector('#upload-center-clear')?.addEventListener('click',()=>{
+      for(let i=uploadQueue.length-1;i>=0;i--) if(uploadQueue[i].status==='uploaded'){if(uploadQueue[i].preview)URL.revokeObjectURL(uploadQueue[i].preview);uploadQueue.splice(i,1);}
+      renderUploadQueue();
+    });
+    queueNode?.addEventListener('click',event=>{
+      const retry=event.target.closest('[data-upload-retry]'), remove=event.target.closest('[data-upload-remove]');
+      if(retry){const item=uploadQueue[Number(retry.dataset.uploadRetry)];if(item){item.status='waiting';item.error='';processUploadQueue();renderUploadQueue();}}
+      if(remove){const index=Number(remove.dataset.uploadRemove),item=uploadQueue[index];if(item?.preview)URL.revokeObjectURL(item.preview);uploadQueue.splice(index,1);renderUploadQueue();}
+    });
+    renderUploadQueue();
     libraryView.onclick = async (event) => {
       const copy = event.target.closest('[data-library-copy]');
       const instagram = event.target.closest('[data-library-instagram]');
