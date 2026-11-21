@@ -618,7 +618,7 @@
     }
     if (selectedPlatforms.includes("linkedin")) {
       try { await window.postpilotWorkspace.scheduleLinkedInBulk(linkedinRows); }
-      catch (error) { if (uploadedPaths.length) await client.storage.from("post-media").remove(uploadedPaths); toast("LinkedIn bulk scheduling failed: " + (error.message || "Please try again.")); return; }
+      catch (error) { toast((selectedPlatforms.includes("instagram") ? "Instagram posts saved, but LinkedIn scheduling failed: " : "LinkedIn bulk scheduling failed: ") + (error.message || "Please try again.")); return; }
     }
     document.querySelector("#modal-backdrop").hidden = true;
     document.body.style.overflow = "";
