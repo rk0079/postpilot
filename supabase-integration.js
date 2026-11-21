@@ -1124,29 +1124,18 @@
       currentUser = event.detail?.user || (await ensureClient()).auth.getUser().then(({data}) => data.user).catch(() => null);
       if (currentUser) await finishSignIn();
     });
-    /* Legacy auth UI launcher retained for password recovery/profile compatibility, not used by welcome-page buttons.
+    // Unified authentication modal: the Supabase integration owns session state and UI.
     window.postpilotOpenAuth = (signup = false) => {
       buildAuth();
       const switchButton = document.querySelector("#auth-switch");
       if (isSignup !== Boolean(signup)) switchButton?.click();
       const backdrop = document.querySelector("#auth-backdrop");
-      if (backdrop) {
-        backdrop.hidden = false;
-        backdrop.style.removeProperty("display");
-        backdrop.style.display = "grid";
-        backdrop.setAttribute("aria-hidden", "false");
-      }
+      if (backdrop) { backdrop.style.display = "grid"; backdrop.setAttribute("aria-hidden", "false"); }
       document.querySelector(signup ? "#auth-full-name" : "#auth-email")?.focus();
     };
-    document.querySelector("#auth-login-open")?.addEventListener("click", (event) => {
-      event.preventDefault();
-      window.postpilotOpenAuth(false);
-    });
-    document.querySelector("#auth-signup-open")?.addEventListener("click", (event) => {
-      event.preventDefault();
-      window.postpilotOpenAuth(true);
-    });
-    */
+    document.querySelector("#auth-login-open")?.addEventListener("click", (event) => { event.preventDefault(); window.postpilotOpenAuth(false); });
+    document.querySelector("#auth-signup-open")?.addEventListener("click", (event) => { event.preventDefault(); window.postpilotOpenAuth(true); });
+ */
 
     addBulkCaptionField();
     bindRealScheduling();
