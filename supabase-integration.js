@@ -1135,7 +1135,6 @@
     };
     document.querySelector("#auth-login-open")?.addEventListener("click", (event) => { event.preventDefault(); window.postpilotOpenAuth(false); });
     document.querySelector("#auth-signup-open")?.addEventListener("click", (event) => { event.preventDefault(); window.postpilotOpenAuth(true); });
- */
 
     // Active unified auth launcher (the legacy launcher block above is intentionally archived).
     window.postpilotOpenAuth = (signup = false) => {
