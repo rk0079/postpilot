@@ -181,6 +181,22 @@ document.addEventListener('DOMContentLoaded', () => {
   const bulkFileInput = document.querySelector('#bulk-file-input');
   const batchPreview = document.querySelector('#batch-preview');
   let selectedBulkFiles = [];
+  const bulkPlatformInstagram = document.querySelector('#bulk-platform-instagram');
+  const bulkPlatformLinkedIn = document.querySelector('#bulk-platform-linkedin');
+  const bulkPlatformNotice = document.querySelector('#bulk-platform-notice');
+  const syncBulkPlatforms = () => {
+    const instagram = Boolean(bulkPlatformInstagram?.checked), linkedin = Boolean(bulkPlatformLinkedIn?.checked);
+    document.querySelector('[data-platform-card="instagram"]')?.classList.toggle('selected', instagram);
+    document.querySelector('[data-platform-card="linkedin"]')?.classList.toggle('selected', linkedin);
+    if (bulkPlatformNotice) bulkPlatformNotice.textContent = instagram && linkedin
+      ? 'Both selected. Instagram receives media posts; LinkedIn receives caption-only posts (media attachment is not supported in the current LinkedIn queue).'
+      : instagram ? 'Instagram selected. Uploaded media and captions will be scheduled to Instagram.'
+      : linkedin ? 'LinkedIn selected. The current LinkedIn queue schedules caption text only—uploaded media will not be attached.'
+      : 'Select at least one platform to continue.';
+  };
+  [bulkPlatformInstagram, bulkPlatformLinkedIn].forEach(input => input?.addEventListener('change', syncBulkPlatforms));
+  syncBulkPlatforms();
+
   const localDateString = (date) => {
     const d = new Date(date);
     return d.getFullYear() + '-' + String(d.getMonth()+1).padStart(2,'0') + '-' + String(d.getDate()).padStart(2,'0');
