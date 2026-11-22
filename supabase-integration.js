@@ -538,6 +538,12 @@
     await loadPosts();
   }
 
+  let bulkUploadPaused = false, bulkUploadCancelled = false;
+  window.postpilotBulkControl = (action) => {
+    if(action === "pause") bulkUploadPaused = true;
+    if(action === "resume") bulkUploadPaused = false;
+    if(action === "cancel") { bulkUploadCancelled = true; bulkUploadPaused = false; }
+  };
   async function saveBulkPosts() {
     if (!currentUser) {
       buildAuth();
@@ -546,85 +552,68 @@
       return;
     }
     const files = Array.from(document.querySelector("#bulk-file-input")?.files || []);
-    if (!files.length) {
-      toast("Choose one or more files for bulk scheduling first.");
-      return;
-    }
-    if (files.length > 50) {
-      toast("Bulk scheduling supports up to 50 files at a time.");
-      return;
-    }
-
+    if (!files.length) { toast("Choose one or more files for bulk scheduling first."); return; }
+    if (files.length > 500) { toast("Bulk scheduling supports up to 500 files at a time."); return; }
     const items = Array.from(document.querySelectorAll(".batch-post-item"));
-    if (items.length !== files.length) {
-      toast("Please reselect the files so every post has its own schedule.");
-      return;
-    }
+    if (items.length !== files.length) { toast("Please reselect the files so every post has its own schedule."); return; }
     const sharedCaption = document.querySelector("#bulk-caption")?.value.trim() || "";
     const schedules = [];
     for (let index = 0; index < files.length; index++) {
-      const item = items[index];
-      const date = item.querySelector("[data-batch-date]")?.value;
-      const time = item.querySelector("[data-batch-time]")?.value;
+      const item = items[index], date = item.querySelector("[data-batch-date]")?.value, time = item.querySelector("[data-batch-time]")?.value;
       const localDateTime = date && time ? new Date(date + "T" + time + ":00") : null;
       if (!localDateTime || !Number.isFinite(localDateTime.getTime()) || localDateTime.getTime() <= Date.now()) {
-        toast("Post " + (index + 1) + " (" + files[index].name + ") needs a future date and time.");
-        return;
+        toast("Post " + (index + 1) + " (" + files[index].name + ") needs a future date and time."); return;
       }
       const captionInput = item.querySelector("[data-batch-caption]");
       const caption = captionInput?.value.trim() || (captionInput?.dataset.edited ? "" : sharedCaption);
-      schedules.push({
-        dateTime: localDateTime,
-        caption,
-        title: item.querySelector("[data-batch-title]")?.value.trim() || files[index].name.replace(/\.[^.]+$/, "") || "Untitled content"
-      });
+      schedules.push({dateTime:localDateTime,caption,title:item.querySelector("[data-batch-title]")?.value.trim() || files[index].name.replace(/\.[^.]+$/,"") || "Untitled content"});
     }
-
-    const batchId = crypto.randomUUID();
-    const uploadedPaths = [];
-    const rows = [];
-    for (let index = 0; index < files.length; index++) {
-      const file = files[index];
-      const safeName = file.name.normalize("NFKD").replace(/[^a-zA-Z0-9._-]+/g, "-").slice(-120) || "upload";
-      const path = currentUser.id + "/" + crypto.randomUUID() + "-" + safeName;
-      const { error: uploadError } = await client.storage.from("post-media").upload(path, file, {
-        cacheControl: "3600", upsert: false, contentType: file.type || "application/octet-stream"
-      });
-      if (uploadError) {
-        if (uploadedPaths.length) await client.storage.from("post-media").remove(uploadedPaths);
-        toast("Bulk media upload failed for " + file.name + ": " + uploadError.message);
-        return;
-      }
-      uploadedPaths.push(path);
-      const isVideo = file.type.startsWith("video/");
-      const caption = schedules[index].caption;
-      rows.push({
-        user_id: currentUser.id,
-        title: schedules[index].title,
-        content_type: isVideo ? "reel" : "photo",
-        caption,
-        hashtags: (caption.match(/#[\p{L}\p{N}_]+/gu) || []),
-        media_url: path,
-        original_filename: file.name,
-        status: "scheduled",
-        scheduled_at: schedules[index].dateTime.toISOString(),
-        batch_id: batchId
-      });
+    bulkUploadPaused = false; bulkUploadCancelled = false;
+    const progressPanel = document.querySelector("#bulk-upload-progress");
+    if(progressPanel) progressPanel.hidden = false;
+    const pauseButton = document.querySelector("#bulk-upload-pause");
+    const cancelButton = document.querySelector("#bulk-upload-cancel");
+    if(pauseButton){pauseButton.disabled=false;pauseButton.dataset.paused="false";pauseButton.textContent="Pause uploads";}
+    if(cancelButton){cancelButton.disabled=false;cancelButton.textContent="Cancel remaining";}
+    const batchId = crypto.randomUUID(), rows = [], failedFiles = [];
+    let uploaded = 0;
+    const notify = status => window.dispatchEvent(new CustomEvent("postpilot:bulk-progress",{detail:{uploaded,total:files.length,failed:failedFiles.length,status}}));
+    notify("Preparing uploads");
+    const uploadOne = async index => {
+      const file=files[index], safeName=file.name.normalize("NFKD").replace(/[^a-zA-Z0-9._-]+/g,"-").slice(-120)||"upload";
+      const path=currentUser.id+"/"+crypto.randomUUID()+"-"+safeName;
+      const {error:uploadError}=await client.storage.from("post-media").upload(path,file,{cacheControl:"3600",upsert:false,contentType:file.type||"application/octet-stream"});
+      if(uploadError){failedFiles.push({file,error:uploadError.message});return;}
+      const caption=schedules[index].caption,isVideo=file.type.startsWith("video/");
+      rows.push({user_id:currentUser.id,title:schedules[index].title,content_type:isVideo?"reel":"photo",caption,hashtags:(caption.match(/#[\p{L}\p{N}_]+/gu)||[]),media_url:path,original_filename:file.name,status:"scheduled",scheduled_at:schedules[index].dateTime.toISOString(),batch_id:batchId});
+      uploaded++;
+      notify("Uploading files");
+    };
+    for(let start=0;start<files.length&&!bulkUploadCancelled;start+=20){
+      while(bulkUploadPaused&&!bulkUploadCancelled){notify("Paused");await new Promise(resolve=>setTimeout(resolve,250));}
+      if(bulkUploadCancelled)break;
+      const chunk=Array.from({length:Math.min(20,files.length-start)},(_,offset)=>start+offset);
+      await Promise.all(chunk.map(uploadOne));
+      notify(bulkUploadCancelled?"Cancelled":"Uploading files");
     }
-    const { error } = await client.from("posts").insert(rows);
-    if (error) {
-      await client.storage.from("post-media").remove(uploadedPaths);
-      toast("Bulk save failed: " + error.message);
-      return;
+    if(rows.length){
+      const {error}=await client.from("posts").insert(rows);
+      if(error){toast("Uploads completed, but saving posts failed: "+error.message);return;}
     }
-    document.querySelector("#modal-backdrop").hidden = true;
-    document.body.style.overflow = "";
-    document.querySelector("#schedule-form").reset();
-    document.querySelector("#schedule-form").classList.remove("bulk-active");
-    const preview = document.querySelector("#batch-preview");
-    if (preview) { preview.hidden = true; preview.innerHTML = ""; }
-    toast(files.length + " posts saved with their individual captions and schedules.");
-    await loadPosts();
+    const status=bulkUploadCancelled?"Stopped":"Complete";
+    notify(status);
+    if(progressPanel)progressPanel.hidden=false;
+    if(pauseButton)pauseButton.disabled=true;
+    if(cancelButton)cancelButton.disabled=true;
+    if(rows.length)await loadPosts();
+    if(failedFiles.length)toast(rows.length+" posts saved; "+failedFiles.length+" uploads failed. Reselect failed files to retry.");
+    else if(bulkUploadCancelled)toast(rows.length+" posts saved. Remaining files were cancelled.");
+    else toast(rows.length+" posts saved with their individual captions and schedules.");
+    if(rows.length===files.length){
+      document.querySelector("#modal-backdrop").hidden=true;document.body.style.overflow="";
+      document.querySelector("#schedule-form").reset();document.querySelector("#schedule-form").classList.remove("bulk-active");
+      const preview=document.querySelector("#batch-preview");if(preview){preview.hidden=true;preview.innerHTML="";}
+    }
   }
 
   function addBulkCaptionField() {
