@@ -200,6 +200,32 @@ document.addEventListener('DOMContentLoaded', () => {
   ['dragenter', 'dragover'].forEach((eventName) => dropZone.addEventListener(eventName, (event) => { event.preventDefault(); dropZone.classList.add('dragging'); }));
   ['dragleave', 'drop'].forEach((eventName) => dropZone.addEventListener(eventName, (event) => { event.preventDefault(); if (eventName === 'drop') handleFiles(event.dataTransfer.files); else dropZone.classList.remove('dragging'); }));
 
+  const bulkProgressPanel = document.querySelector('#bulk-upload-progress');
+  const bulkPauseButton = document.querySelector('#bulk-upload-pause');
+  const bulkCancelButton = document.querySelector('#bulk-upload-cancel');
+  bulkPauseButton?.addEventListener('click', () => {
+    const paused = bulkPauseButton.dataset.paused === 'true';
+    window.postpilotBulkControl?.(paused ? 'resume' : 'pause');
+    bulkPauseButton.dataset.paused = paused ? 'false' : 'true';
+    bulkPauseButton.textContent = paused ? 'Pause uploads' : 'Resume uploads';
+  });
+  bulkCancelButton?.addEventListener('click', () => {
+    window.postpilotBulkControl?.('cancel');
+    bulkCancelButton.disabled = true;
+    bulkCancelButton.textContent = 'Stopping…';
+  });
+  window.addEventListener('postpilot:bulk-progress', event => {
+    const {uploaded=0,total=0,failed=0,status='Uploading'} = event.detail || {};
+    const count = document.querySelector('#bulk-progress-count');
+    const bar = document.querySelector('#bulk-progress-bar');
+    const statusNode = document.querySelector('#bulk-progress-status');
+    const failedNode = document.querySelector('#bulk-progress-failed');
+    if(count) count.textContent = uploaded + ' / ' + total;
+    if(bar) bar.style.width = (total ? Math.min(100,uploaded/total*100) : 0) + '%';
+    if(statusNode) statusNode.textContent = status;
+    if(failedNode) failedNode.textContent = failed + ' failed';
+  });
+
   const bulkDropZone = document.querySelector('#bulk-drop-zone');
   const bulkFileInput = document.querySelector('#bulk-file-input');
   const batchPreview = document.querySelector('#batch-preview');
@@ -248,13 +274,13 @@ document.addEventListener('DOMContentLoaded', () => {
     incoming.forEach(file => {
       if (!combined.some(existing => existing.name === file.name && existing.size === file.size && existing.lastModified === file.lastModified)) combined.push(file);
     });
-    if (combined.length > 50) { showToast('Bulk scheduling supports up to 50 files.'); return; }
+    if (combined.length > 500) { showToast('Bulk scheduling supports up to 500 files per batch.'); return; }
     selectedBulkFiles = combined;
     const transfer = new DataTransfer();
     selectedBulkFiles.forEach(file => transfer.items.add(file));
     bulkFileInput.files = transfer.files;
     bulkDropZone.querySelector('strong').textContent = `${selectedBulkFiles.length} media files ready to schedule`;
-    bulkDropZone.querySelector('span').textContent = 'Select more files to add them · Each post has its own caption and schedule';
+    bulkDropZone.querySelector('span').textContent = 'Add more files · Up to 500 per batch';
     bulkDropZone.classList.add('dragging');
     renderBatchPreview();
   };
