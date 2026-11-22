@@ -550,8 +550,8 @@
       toast("Choose one or more files for bulk scheduling first.");
       return;
     }
-    if (files.length > 50) {
-      toast("Bulk scheduling supports up to 50 files at a time.");
+    if (files.length > 500) {
+      toast("Bulk scheduling supports up to 500 files at a time.");
       return;
     }
 
