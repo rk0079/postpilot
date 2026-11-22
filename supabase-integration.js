@@ -578,15 +578,19 @@
     const batchId = crypto.randomUUID(), rows = [], failedFiles = [];
     let uploaded = 0;
     const notify = status => window.dispatchEvent(new CustomEvent("postpilot:bulk-progress",{detail:{uploaded,total:files.length,failed:failedFiles.length,status}}));
+    const progressFiles=document.querySelector("#bulk-progress-files");if(progressFiles)progressFiles.innerHTML="";
+    files.forEach((file,index)=>window.dispatchEvent(new CustomEvent("postpilot:bulk-file-status",{detail:{index,name:file.name,status:"queued"}})));
     notify("Preparing uploads");
     const uploadOne = async index => {
       const file=files[index], safeName=file.name.normalize("NFKD").replace(/[^a-zA-Z0-9._-]+/g,"-").slice(-120)||"upload";
+      window.dispatchEvent(new CustomEvent("postpilot:bulk-file-status",{detail:{index,name:file.name,status:"uploading"}}));
       const path=currentUser.id+"/"+crypto.randomUUID()+"-"+safeName;
       const {error:uploadError}=await client.storage.from("post-media").upload(path,file,{cacheControl:"3600",upsert:false,contentType:file.type||"application/octet-stream"});
-      if(uploadError){failedFiles.push({file,error:uploadError.message});return;}
+      if(uploadError){failedFiles.push({file,error:uploadError.message});window.dispatchEvent(new CustomEvent("postpilot:bulk-file-status",{detail:{index,name:file.name,status:"failed",error:uploadError.message}}));return;}
       const caption=schedules[index].caption,isVideo=file.type.startsWith("video/");
       rows.push({user_id:currentUser.id,title:schedules[index].title,content_type:isVideo?"reel":"photo",caption,hashtags:(caption.match(/#[\p{L}\p{N}_]+/gu)||[]),media_url:path,original_filename:file.name,status:"scheduled",scheduled_at:schedules[index].dateTime.toISOString(),batch_id:batchId});
       uploaded++;
+      window.dispatchEvent(new CustomEvent("postpilot:bulk-file-status",{detail:{index,name:file.name,status:"uploaded"}}));
       notify("Uploading files");
     };
     for(let start=0;start<files.length&&!bulkUploadCancelled;start+=20){
