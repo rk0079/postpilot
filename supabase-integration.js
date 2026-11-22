@@ -1010,7 +1010,7 @@
         }
       } catch (_) {}
       console.error("PostPilot LinkedIn function invocation failed", { action: body?.action, error, detail });
-      throw new Error((error.message || "LinkedIn request failed.") + (detail ? " Details: " + detail : " (No HTTP response body available; check browser console/network.) );
+      throw new Error((error.message || "LinkedIn request failed.") + (detail ? " Details: " + detail : " (No HTTP response body available; check browser console/network.)"));
     }
     if (data?.error) throw new Error(data.error);
     return data;
