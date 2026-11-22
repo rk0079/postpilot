@@ -1016,6 +1016,27 @@
     return data;
   };
   window.postpilotWorkspace = {
+    getManualPublishPosts: async () => {
+      if (!currentUser) throw new Error("Sign in to open the Publish Center.");
+      const { data, error } = await client.from("posts")
+        .select("id,title,content_type,caption,hashtags,status,approval_status,scheduled_at,created_at,media_url,manual_published_at")
+        .eq("user_id", currentUser.id)
+        .in("status", ["scheduled","published"])
+        .order("scheduled_at", { ascending: true, nullsFirst: false })
+        .limit(200);
+      if (error) throw error;
+      return data || [];
+    },
+    markManualPublished: async (postId) => {
+      if (!currentUser) throw new Error("Sign in to confirm publishing.");
+      const { data, error } = await client.from("posts")
+        .update({ status: "published", manual_published_at: new Date().toISOString(), approval_status: "approved" })
+        .eq("id", postId).eq("user_id", currentUser.id)
+        .select("id,status,manual_published_at").single();
+      if (error) throw error;
+      return data;
+    },
+    refreshPosts: async () => loadPosts(),
     getUser: () => currentUser ? ({ id: currentUser.id, email: currentUser.email || "", fullName: currentUser.user_metadata?.full_name || "", workspaceName: currentUser.user_metadata?.workspace_name || "" }) : null,
     getProfile: async () => {
       if (!currentUser) throw new Error("Sign in to manage your workspace.");
