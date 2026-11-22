@@ -216,7 +216,7 @@ document.addEventListener('DOMContentLoaded', () => {
     const timeValue = document.querySelector('#bulk-window')?.value || '19:00';
     batchPreview.hidden = false;
     batchPreview.innerHTML = `
-      <div class="batch-preview-heading"><strong>${selectedBulkFiles.length} posts in this batch</strong><span>Set each post's caption, date and time below.</span><button type="button" class="secondary-button" id="apply-batch-schedule">Apply default date/time to all</button></div>
+      <div class="batch-preview-heading"><strong>${selectedBulkFiles.length} posts in this batch</strong><span>Set each post's caption, date and time below.</span><div class="bulk-distribution-controls" style="display:flex;gap:12px;flex-wrap:wrap;align-items:center;margin-top:12px"><label>Posts per day <select id="bulk-posts-per-day" class="form-input" style="width:auto"><option value="1" selected>1 per day</option><option value="2">2 per day</option><option value="3">3 per day</option><option value="4">4 per day</option><option value="5">5 per day</option></select></label><div id="bulk-slot-times" style="display:flex;gap:8px;flex-wrap:wrap"></div><button type="button" class="secondary-button" id="apply-batch-schedule">Apply distribution</button></div></div>
       <div class="batch-preview-list">${selectedBulkFiles.map((file,index) => {
         const scheduled = new Date(startValue + 'T12:00:00');
         scheduled.setDate(scheduled.getDate() + index);
@@ -229,16 +229,32 @@ document.addEventListener('DOMContentLoaded', () => {
           <div class="form-two-col"><div><label class="form-label">Publish date</label><input class="form-input batch-post-date" data-batch-date="${index}" type="date" min="${localDateString(new Date())}" value="${date}" /></div><div><label class="form-label">Publish time</label><input class="form-input batch-post-time" data-batch-time="${index}" type="time" value="${timeValue}" /></div></div>
         </article>`;
       }).join('')}</div>`;
-    const applyDefaults = () => {
-      const start = document.querySelector('#bulk-start-date')?.value || localDateString(new Date());
-      const time = document.querySelector('#bulk-window')?.value || '19:00';
-      batchPreview.querySelectorAll('.batch-post-item').forEach((item,index) => {
-        const d = new Date(start + 'T12:00:00'); d.setDate(d.getDate()+index);
-        item.querySelector('.batch-post-date').value = localDateString(d);
-        item.querySelector('.batch-post-time').value = time;
+    const postsPerDaySelect = batchPreview.querySelector("#bulk-posts-per-day");
+    const slotTimesWrap = batchPreview.querySelector("#bulk-slot-times");
+    const slotTimes = ["09:00","14:00","19:00","21:00","23:00"];
+    const renderSlotTimes = () => {
+      const count = Number(postsPerDaySelect?.value || 1);
+      slotTimesWrap.innerHTML = slotTimes.slice(0,count).map((time,index) => `<label style="font-size:12px">Slot ${index+1}<input type="time" class="form-input bulk-slot-time" data-slot="${index}" value="${time}" style="width:auto;display:block;margin-top:4px"></label>`).join("");
+      slotTimesWrap.querySelectorAll(".bulk-slot-time").forEach(input => input.addEventListener("change",event => { slotTimes[Number(event.target.dataset.slot)] = event.target.value; }));
+    };
+    const distributeSchedule = () => {
+      const count = Number(postsPerDaySelect?.value || 1);
+      const start = document.querySelector("#bulk-start-date")?.value || localDateString(new Date());
+      batchPreview.querySelectorAll(".batch-post-item").forEach((item,index) => {
+        const dayOffset = Math.floor(index / count);
+        const slot = index % count;
+        const d = new Date(start + "T12:00:00"); d.setDate(d.getDate()+dayOffset);
+        item.querySelector(".batch-post-date").value = localDateString(d);
+        item.querySelector(".batch-post-time").value = slotTimes[slot] || "19:00";
       });
     };
-    batchPreview.querySelector('#apply-batch-schedule')?.addEventListener('click', applyDefaults);
+    renderSlotTimes();
+    postsPerDaySelect?.addEventListener("change",renderSlotTimes);
+    const applyDefaults = () => {
+      const time = document.querySelector("#bulk-window")?.value || "19:00";
+      slotTimes[0] = time; renderSlotTimes(); distributeSchedule();
+    };
+    batchPreview.querySelector('#apply-batch-schedule')?.addEventListener('click', distributeSchedule);
     if (window.lucide) window.lucide.createIcons();
   };
   const setBulkFiles = (files) => {
