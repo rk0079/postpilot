@@ -248,7 +248,7 @@ document.addEventListener('DOMContentLoaded', () => {
     incoming.forEach(file => {
       if (!combined.some(existing => existing.name === file.name && existing.size === file.size && existing.lastModified === file.lastModified)) combined.push(file);
     });
-    if (combined.length > 50) { showToast('Bulk scheduling supports up to 50 files.'); return; }
+    if (combined.length > 500) { showToast('Bulk scheduling supports up to 500 files.'); return; }
     selectedBulkFiles = combined;
     const transfer = new DataTransfer();
     selectedBulkFiles.forEach(file => transfer.items.add(file));
