@@ -214,6 +214,16 @@ document.addEventListener('DOMContentLoaded', () => {
     bulkCancelButton.disabled = true;
     bulkCancelButton.textContent = 'Stopping…';
   });
+  window.addEventListener('postpilot:bulk-file-status', event => {
+    const {index=0,name='',status='queued',error=''} = event.detail || {};
+    const list=document.querySelector('#bulk-progress-files');
+    if(!list)return;
+    let row=list.querySelector('[data-progress-file="'+index+'"]');
+    if(!row){row=document.createElement('div');row.className='bulk-progress-file';row.dataset.progressFile=String(index);row.innerHTML='<span class="bulk-progress-file-name"></span><span class="bulk-progress-file-status"></span>';list.appendChild(row);}
+    row.querySelector('.bulk-progress-file-name').textContent=name;
+    const statusNode=row.querySelector('.bulk-progress-file-status');statusNode.textContent=status+(error?' · '+error:'');
+    row.dataset.status=status;
+  });
   window.addEventListener('postpilot:bulk-progress', event => {
     const {uploaded=0,total=0,failed=0,status='Uploading'} = event.detail || {};
     const count = document.querySelector('#bulk-progress-count');
